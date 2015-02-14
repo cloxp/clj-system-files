@@ -137,7 +137,7 @@
   "returns classpath entries in an order that will prioritize local source
   directories over maven and compiled jars and  target/classes dirs"
   []
-  (->> (rksm.system-navigator.ns.filemapping/classpath)
+  (->> (classpath)
     (sort-by #(-> % .isDirectory not))
     (sort-by #(-> % .getCanonicalPath (.endsWith "/classes")))))
 
@@ -264,8 +264,8 @@
 (comment
   (classpath)
   (loaded-namespaces)
-  (file-for-ns 'rksm.system-navigator)
-  (file-for-ns 'rksm.system-navigator "/Users/robert/clojure/system-navigator/src/main/clojure/rksm/system_navigator.clj")
-  (relative-path-for-ns 'rksm.system-navigator "/Users/robert/clojure/system-navigator/src/main/clojure/rksm/system_navigator.clj")
+  (file-for-ns 'rksm.system-files)
+  (file-for-ns 'rksm.system-files "/Users/robert/clojure/system-files/src/main/clojure/rksm/system_files.clj")
+  (relative-path-for-ns 'rksm.system-files "/Users/robert/clojure/system-files/src/main/clojure/rksm/system_navigator.clj")
   (refresh-classpath-dirs)
   )

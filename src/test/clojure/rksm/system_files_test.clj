@@ -4,18 +4,19 @@
             [rksm.system-files :refer :all]
             [clojure.java.io :as io]))
 
-(deftest system-navigator
+(deftest system-files
 
-  (add-classpath "test-resources/dummy-2-test.jar")
+  (add-classpath "/Users/robert/clojure/clojure-system-files/test-resources/dummy-2-test.jar")
+;   (add-classpath "test-resources/dummy-2-test.jar")
   (require 'rksm.system-files.test.dummy-1)
-  (require 'rksm.system-navigator.test.dummy-2)
+  (require 'rksm.system-files.test.dummy-2)
   (require 'rksm.system-files.test.dummy-3)
 
   (testing "find loaded namespaces"
     (is (= ['rksm.system-files.test.dummy-1
-            'rksm.system-navigator.test.dummy-2 
+            'rksm.system-files.test.dummy-2 
             'rksm.system-files.test.dummy-3]
-           (loaded-namespaces :matching #"rksm.*dummy-[0-9]$"))))
+           (loaded-namespaces :matching #"rksm.system-files.*dummy-[0-9]$"))))
 
   (testing "namespace to classpath mapping"
     (testing "for dirs"
@@ -31,7 +32,7 @@
 
     (testing "for jars"
       (is
-        (->> (classpath-for-ns 'rksm.system-navigator.test.dummy-2)
+        (->> (classpath-for-ns 'rksm.system-files.test.dummy-2)
              str
              (re-find #"test-resources/dummy-2-test.jar$"))))
 
@@ -40,24 +41,25 @@
       (is (= "(ns rksm.system-files.test.dummy-1)\n\n(def x 23)\n"
               (source-for-ns 'rksm.system-files.test.dummy-1))))
     (testing "for jars"
-      (is (= "(ns rksm.system-navigator.test.dummy-2\n    (:gen-class))\n\n(def y 24)\n"
-              (source-for-ns 'rksm.system-navigator.test.dummy-2)))))
+      (is (= "(ns rksm.system-files.test.dummy-2\n    (:gen-class))\n\n(def y 24)\n"
+              (source-for-ns 'rksm.system-files.test.dummy-2)))))
   
   (testing "relative namespace paths"
     (is (= "rksm/system_files/test/dummy_1.clj"
            (relative-path-for-ns 'rksm.system-files.test.dummy-1)))
-    (is (= "rksm/system_navigator/test/dummy_2.clj"
-           (relative-path-for-ns 'rksm.system-navigator.test.dummy-2))))
+    (is (= "rksm/system_files/test/dummy_2.clj"
+           (relative-path-for-ns 'rksm.system-files.test.dummy-2))))
   )
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (comment
- (.getName(relative-path-for-ns 'rksm.system-navigator.test.dummy-2))
-  (run-tests 'rksm.system-navigator.ns.filemapping-test)
-  (require 'rksm.system-navigator.test.dummy-2)
-  (classpath-for-ns 'rksm.system-navigator.test.dummy-2)
+  (run-tests 'rksm.system-files-test)
+  
+ (.getName(relative-path-for-ns 'rksm.system-files.test.dummy-2))
+  (require 'rksm.system-files.test.dummy-2)
+  (classpath-for-ns 'rksm.system-files.test.dummy-2)
   (source-for-ns 'clojure.core)
-  (file-for-ns 'rksm.system-navigator.test.dummy-2)
+  (file-for-ns 'rksm.system-files.test.dummy-2)
   (file-for-ns 'rksm.system-files.test.dummy-1)
   )
