@@ -26,7 +26,9 @@
 
 
 (def common-src-dirs ["src/main/clojure", "src/main/clj", "src/main", "src/clojure", "src/clj", "src"])
+(def common-cljs-dirs ["src/main/cljs", "src/cljs", "src"])
 (def common-test-dirs ["src/test/clojure", "src/test/clj", "src/test", "test/clojure", "test/clj", "test"])
+(def common-cljs-test-dirs ["src/test/cljs", "src/test", "test/cljs", "src"])
 (def class-dirs ["classes"])
 
 (defn- first-existing-file
@@ -47,7 +49,10 @@
         find-first (partial first-existing-file d)]
     (->> [;(find-first class-dirs)
           (find-first common-src-dirs)
-          (find-first common-test-dirs)]
+          (find-first common-test-dirs)
+          (find-first common-cljs-dirs)
+          (find-first common-cljs-test-dirs)
+          ]
       (filter boolean))))
 
 (defn add-common-project-classpath
@@ -163,11 +168,11 @@
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (defn ns-name->rel-path
-  [ns-name]
+  [ns-name & [ext]]
   (-> ns-name str
     (clojure.string/replace #"\." "/")
     (clojure.string/replace #"-" "_")
-    (str ".clj")))
+    (str (or ext ".clj"))))
 
 (defn rel-path->ns-name
   [rel-path]
@@ -175,7 +180,7 @@
     str
     (clojure.string/replace #"/" ".")
     (clojure.string/replace #"_" "-")
-    (clojure.string/replace #".clj$" "")
+    (clojure.string/replace #".clj(s|x)?$" "")
     symbol))
 
 (defn- clj-files-in-dir
