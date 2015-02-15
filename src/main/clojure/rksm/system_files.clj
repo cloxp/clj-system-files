@@ -6,7 +6,8 @@
               [clojure.java.io :as io]
               [dynapath.util :as dp]
               [cemerick.pomegranate]
-              [rksm.system-files.fs-util :as fs]))
+              [rksm.system-files.fs-util :as fs]
+              [clojure.string :as s]))
 
 (declare ns-name->rel-path classpath add-project-dir)
 
@@ -266,6 +267,49 @@
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+(defn ensure-file
+  [& [file ext]]
+  (if file
+    (let [f (clojure.java.io/file file)]
+      (.mkdirs (.getParentFile f))
+      (.createNewFile f)
+      f)
+    (let [name (str "file-less-namespace_"
+                    (quot (System/currentTimeMillis) 1000))
+          f (java.io.File/createTempFile name (or ext ".clj"))]
+      f)))
+
+(defn ensure-classpath-for-new-ns
+  [ns-name dir]
+  (if-not (->> (classpath)
+            (map #(.getCanonicalPath %))
+            (some #{dir}))
+    (add-classpath dir)))
+
+(defn create-namespace-file
+  [ns-name dir ext]
+  (let [path (ns-name->rel-path ns-name ext)
+        fname (str dir java.io.File/separator path)
+        f (ensure-file fname ext)]
+    (spit f (format "(ns %s)" ns-name))    
+    (ensure-classpath-for-new-ns ns-name dir)
+    (.getAbsolutePath f)))
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+(defn updated-source
+  "Takes the new source for a def and produces a new version of the ns source,
+  with the new def code embedded. meta-info is a meta-data like structure."
+  [sym {:keys [line] :as meta-info} new-src-for-def old-src-for-def file-src]
+  (let [lines (s/split-lines file-src)
+        line (dec line)
+        before-lines (take line lines)
+        after-lines (-> old-src-for-def
+                      s/split-lines count
+                      (drop (drop line lines)))]
+    (str (s/join "\n" (concat before-lines [new-src-for-def] after-lines)))))
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 (comment
   (classpath)
   (loaded-namespaces)

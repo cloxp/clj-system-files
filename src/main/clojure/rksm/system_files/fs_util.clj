@@ -5,6 +5,10 @@
    [clojure.java.io :as io])
   (:import java.io.File))
 
+(defn walk-dirs [dirpath pattern]
+  (doall (filter #(re-matches pattern (.getName %))
+                 (file-seq (io/file dirpath)))))
+ 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ; borrowoed from https://github.com/clojure/clojurescript/blob/master/src/clj/cljs/closure.clj
 
