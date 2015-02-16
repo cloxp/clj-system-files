@@ -255,8 +255,8 @@
     (mapcat discover-ns-in-cp-dir)))
 
 (defn add-project-dir
-  [dir]
-  (doseq [new-cp (find-source-test-compile-dirs dir)]
+  [dir & [{:keys [source-dirs] :or {source-dirs []}}]]
+  (doseq [new-cp (concat (find-source-test-compile-dirs dir) source-dirs)]
     (cemerick.pomegranate/add-classpath new-cp))
   (discover-ns-in-project-dir dir))
 
