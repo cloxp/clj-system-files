@@ -21,9 +21,10 @@
 
 (defn add-classpath
   [cp]
-  (dp/add-classpath-url
-    (last (classloaders))
-    (-> cp io/file .toURI .toURL)))
+  (if-not (some (partial = (io/file cp)) (classpath))
+    (dp/add-classpath-url
+     (last (classloaders))
+     (-> cp io/file .toURI .toURL))))
 
 
 (def common-src-dirs ["src/main/clojure", "src/main/clj", "src/main", "src/clojure", "src/clj", "src"])
