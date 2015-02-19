@@ -89,15 +89,16 @@
 ; jar related
 ; -=-=-=-=-=-=-
 
-(defn- jar-entry-for-ns
+(defn jar-entry-for-ns
   [jar-file ns-name]
-  (let [rel-name (ns-name->rel-path ns-name)]
-       (->> jar-file .entries
-            iterator-seq
-            (filter #(= (.getName %) rel-name))
-            first)))
+  (let [rel-name (rksm.system-files/ns-name->rel-path ns-name ".clj(x|s)?")
+        pat (re-pattern rel-name)]
+    (->> jar-file .entries
+      iterator-seq
+      (filter #(re-find pat (.getName %)))
+      first)))
 
-(defn- jar-reader-for-ns
+(defn jar-reader-for-ns
   [class-path-file ns-name]
   (let [jar (java.util.jar.JarFile. class-path-file)
         jar-entry (jar-entry-for-ns jar ns-name)]
