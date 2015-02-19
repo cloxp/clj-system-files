@@ -40,6 +40,16 @@
       (to-path (concat prefix (drop common input-path)) "/")
       )))
 
+(defn set-cwd!
+  [dir]
+  (let [dir (io/file dir)
+        path (.getCanonicalPath dir)]
+    (if-not (.exists dir)
+      (throw (Exception. (str "Directory " dir " does not exist!")))
+      (do 
+        (System/setProperty "user.dir" path)
+        path))))
+
 (comment
  (require '[rksm.system-navigator.ns.filemapping :refer (classpath-for-ns file-for-ns)])
 
