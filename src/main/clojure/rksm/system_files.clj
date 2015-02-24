@@ -53,9 +53,9 @@
           (find-first common-src-dirs)
           (find-first common-test-dirs)
           (find-first common-cljs-dirs)
-          (find-first common-cljs-test-dirs)
-          ]
-      (filter boolean))))
+          (find-first common-cljs-test-dirs)]
+      (filter boolean)
+      fs/remove-parent-paths)))
 
 (defn add-common-project-classpath
   [& [base-dir]]
@@ -65,6 +65,13 @@
 (defn classpath-dirs
   []
   (filter #(.isDirectory %) (classpath)))
+
+(defn classpath-of-project
+  [project-dir]
+  (let [p (.getCanonicalPath (io/file project-dir))]
+    (->> (classpath)
+      (filter #(.startsWith (str %) p))
+      fs/remove-parent-paths)))
 
 (defn- classpath-dir-known?
   [dir]
@@ -90,8 +97,9 @@
 ; -=-=-=-=-=-=-
 
 (defn jar-entry-for-ns
-  [jar-file ns-name]
-  (let [rel-name (rksm.system-files/ns-name->rel-path ns-name ".clj(x|s)?")
+  [jar-file ns-name & [ext]]
+  (let [ext (or ext ".clj(x|s)?")
+        rel-name (rksm.system-files/ns-name->rel-path ns-name ext)
         pat (re-pattern rel-name)]
     (->> jar-file .entries
       iterator-seq
@@ -99,9 +107,9 @@
       first)))
 
 (defn jar-reader-for-ns
-  [class-path-file ns-name]
+  [class-path-file ns-name & [ext]]
   (let [jar (java.util.jar.JarFile. class-path-file)
-        jar-entry (jar-entry-for-ns jar ns-name)]
+        jar-entry (jar-entry-for-ns jar ns-name ext)]
     (-> jar (.getInputStream jar-entry) io/reader)))
 
 (defn classpath-from-system-cp-jar
@@ -223,29 +231,25 @@
   (.getCanonicalPath (file-for-ns ns)))
 
 (defn source-reader-for-ns
-  [ns-name & [file-name]]
+  [ns-name & [file-name ext]]
   (if-let [f (file-for-ns ns-name file-name)]
     (if (jar? f)
-        (jar-reader-for-ns f ns-name)
+        (jar-reader-for-ns f ns-name ext)
         (io/reader f))))
 
 (defn source-for-ns
-  [ns-name & [file-name]]
-  (if-let [rdr (source-reader-for-ns ns-name file-name)]
+  [ns-name & [file-name ext]]
+  (if-let [rdr (source-reader-for-ns ns-name file-name ext)]
     (with-open [rdr rdr] (when rdr (slurp rdr)))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-(defn- walk-dirs [dirpath pattern]
-  (doall (filter #(re-matches pattern (.getName %))
-                 (file-seq (io/file dirpath)))))
- 
 (comment
- (map #(println (.getPath %)) (walk-dirs "src" #".*\.clj$")))
+ (map #(println (.getPath %)) (fs/walk-dirs "src" #".*\.clj$")))
 
 (defn discover-ns-in-cp-dir
   [dir]
-  (->> (walk-dirs dir #".*\.clj$")
+  (->> (fs/walk-dirs dir #".*\.clj$")
     ; (map #(.getCanonicalPath %))
     (map (partial fs/path-relative-to dir))
     (map rel-path->ns-name)
