@@ -21,3 +21,11 @@
             (classpath-for-ns 'rksm.system-files.fs-util-test)
             (file-for-ns 'rksm.system-files.fs-util-test)))))
   )
+
+(deftest remove-parent-path-test
+  (is (= ["/foo/bar"]
+         (remove-parent-paths ["/foo/bar" "/foo"])))
+  
+  (is (= ["/a/b" "/a/c/d"]
+         (remove-parent-paths ["/a/b" "/a/c/d" "/a/c"])))
+  )

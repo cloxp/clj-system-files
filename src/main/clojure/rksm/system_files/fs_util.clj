@@ -8,7 +8,7 @@
 (defn walk-dirs [dirpath pattern]
   (doall (filter #(re-matches pattern (.getName %))
                  (file-seq (io/file dirpath)))))
- 
+
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ; borrowoed from https://github.com/clojure/clojurescript/blob/master/src/clj/cljs/closure.clj
 
@@ -39,6 +39,20 @@
       (to-path (drop common input-path) "/")
       (to-path (concat prefix (drop common input-path)) "/")
       )))
+
+(defn parent?
+  [maybe-parent-dir dir]
+  (let [sep java.io.File/separator
+        a (.getCanonicalPath (io/file maybe-parent-dir))
+        b (.getCanonicalPath (io/file dir))]
+    (and (not= a b) (.startsWith b (str a sep)))))
+
+(defn remove-parent-paths
+  "if dirs is [/foo/bar /foo], remove /foo"
+  [dirs]
+  (filter (fn [dir] (every? #(or (= dir %) (not (parent? dir %))) dirs)) dirs))
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (defn set-cwd!
   [dir]
