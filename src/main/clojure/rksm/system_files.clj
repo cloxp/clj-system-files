@@ -96,6 +96,37 @@
 ; jar related
 ; -=-=-=-=-=-=-
 
+(defn jar+entry->reader
+  [jar entry]
+  (io/reader (.getInputStream jar entry)))
+
+(defn jar-clojure-url-string?
+  [jar-url]
+  (boolean (and
+            (string? jar-url)
+            (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x)?))" jar-url))))
+
+(defn jar-url->reader
+  "expects a jar-url String that identifies a jar and an entry in it, like
+  jar:file:/foo/.m2/repository/org/xxx/bar/0.1.2/bar.jar!/my/ns.cljs"
+  [^String jar-url]
+  (if-let [jar-match (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x)?))" jar-url)]
+    (let [[_ _ jar-path jar-entry-path ext] jar-match
+          jar (java.util.jar.JarFile. jar-path)
+          entry (.getEntry jar jar-entry-path)]
+      (jar+entry->reader jar entry))))
+
+(defn jar-url-for-ns
+  [ns-name & [ext]]
+  (some-> ns-name
+    (ns-name->rel-path ext)
+    ClassLoader/getSystemResource
+    .toString))
+
+(comment
+ (jar-url->entry "jar:file:/Users/robert/.m2/repository/org/clojure/core.async/0.1.346.0-17112a-alpha/core.async-0.1.346.0-17112a-alpha.jar!/cljs/core/async.cljs")
+ )
+
 (defn jar-entry-for-ns
   [jar-file ns-name & [ext]]
   (let [ext (or ext ".clj(x|s)?")
@@ -172,7 +203,7 @@
   [ns-name]
   (let [found (for [cp (sorted-classpath)]
                 (if (some #{ns-name} (nf/find-namespaces [cp])) cp))]
-    (first (filter (complement nil?) found))))
+    (first (remove nil? found))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ; classpath / namespace -> files

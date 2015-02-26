@@ -6,8 +6,8 @@
 
 (deftest system-files
 
-  (add-classpath "/Users/robert/clojure/clojure-system-files/test-resources/dummy-2-test.jar")
-;   (add-classpath "test-resources/dummy-2-test.jar")
+  (add-classpath "test-resources/dummy-2-test.jar")
+
   (require 'rksm.system-files.test.dummy-1)
   (require 'rksm.system-files.test.dummy-2)
   (require 'rksm.system-files.test.dummy-3)
@@ -51,10 +51,19 @@
            (relative-path-for-ns 'rksm.system-files.test.dummy-2))))
   )
 
+(deftest find-jar-url
+  (is (= (str "jar:file:"
+              (.getCanonicalPath (clojure.java.io/file "test-resources/dummy-2-test.jar"))
+              "!/rksm/system_files/test/dummy_2.clj") 
+         (rksm.system-files/jar-url-for-ns 'rksm.system-files.test.dummy-2))))
+
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (comment
   (run-tests 'rksm.system-files-test)
+  
+  
+  "jar:file:/Users/robert/clojure/clojure-system-files/test-resources/dummy-2-test.jar!/rksm/system_files/test/dummy_2.clj"
   
  (.getName(relative-path-for-ns 'rksm.system-files.test.dummy-2))
   (require 'rksm.system-files.test.dummy-2)
