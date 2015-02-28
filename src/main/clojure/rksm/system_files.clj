@@ -225,7 +225,7 @@
     (clojure.string/replace #".clj(s|x)?$" "")
     symbol))
 
-(defn- clj-files-in-dir
+(defn clj-files-in-dir
   [dir]
   (->> dir
        (tree-seq #(.isDirectory %) #(.listFiles %))
@@ -279,23 +279,25 @@
  (map #(println (.getPath %)) (fs/walk-dirs "src" #".*\.clj$")))
 
 (defn discover-ns-in-cp-dir
-  [dir]
-  (->> (fs/walk-dirs dir #".*\.clj$")
-    ; (map #(.getCanonicalPath %))
-    (map (partial fs/path-relative-to dir))
-    (map rel-path->ns-name)
-    ))
+  [dir & [file-match]]
+  (let [file-match (or file-match #".*\.clj$")]
+   (->> (fs/walk-dirs dir file-match)
+     ; (map #(.getCanonicalPath %))
+     (map (partial fs/path-relative-to dir))
+     (map rel-path->ns-name)
+     )))
 
 (defn discover-ns-in-project-dir
-  [dir]
+  [dir & [file-match]]
   (->> (find-source-test-compile-dirs dir)
-    (mapcat discover-ns-in-cp-dir)))
+    (mapcat #(discover-ns-in-cp-dir % file-match))
+    distinct))
 
 (defn add-project-dir
-  [dir & [{:keys [source-dirs] :or {source-dirs []}}]]
+  [dir & [{:keys [source-dirs project-file-match] :or {source-dirs []}}]]
   (doseq [new-cp (concat (find-source-test-compile-dirs dir) source-dirs)]
     (cemerick.pomegranate/add-classpath new-cp))
-  (discover-ns-in-project-dir dir))
+  (discover-ns-in-project-dir dir project-file-match))
 
 (defn refresh-classpath-dirs
   []
