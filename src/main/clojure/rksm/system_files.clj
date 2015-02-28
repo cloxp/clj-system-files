@@ -305,6 +305,45 @@
   (nr/refresh-all))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; a better all-ns
+; -=-=-=-=-=-=-=-=-
+
+(defn- filter-files
+  [files file-match]
+  (filter 
+   (fn [f]
+     (and
+      (not (.startsWith f "META-INF"))
+      (not= f "project.clj") 
+      (re-find file-match f)))
+   files))
+
+(defn- find-namespace-data
+  [cp & [file-match]]
+  (let [file-match (or file-match #"\.clj$")
+        jar? (boolean (re-find #"\.jar$" (.getName cp)))
+        sep java.io.File/separator]
+    (if-let [files (cond
+                     (not (.exists cp)) nil
+                     (.isDirectory cp) (map (partial fs/path-relative-to cp)
+                                            (clj-files-in-dir cp))
+                     jar? (->> cp java.util.jar.JarFile. .entries iterator-seq (map #(.getName %)))
+                     :default nil)]    
+      (map (fn [rel-path] 
+             {:jar? jar?
+              :cp cp
+              :ns (rel-path->ns-name rel-path)
+              :file (if jar? (str "jar:file:" cp "!" sep rel-path) (str cp sep rel-path))})
+           (filter-files files file-match)))))
+
+(defn find-namespaces-on-cp
+  [& [file-match]]
+  (->> (sorted-classpath)
+    (mapcat #(find-namespace-data % file-match))
+    (map :ns)
+    distinct sort))
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (defn ensure-file
   [& [file ext]]
@@ -349,6 +388,7 @@
     (str (s/join "\n" (concat before-lines [new-src-for-def] after-lines)))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 (comment
   (classpath)
   (loaded-namespaces)
