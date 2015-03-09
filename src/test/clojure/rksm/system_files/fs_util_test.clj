@@ -29,3 +29,6 @@
   (is (= ["/a/b" "/a/c/d"]
          (remove-parent-paths ["/a/b" "/a/c/d" "/a/c"])))
   )
+
+(comment
+ (test-ns 'rksm.system-files.fs-util-test))

@@ -6,7 +6,7 @@
   (:import java.io.File))
 
 (defn walk-dirs [dirpath pattern]
-  (doall (filter #(re-matches pattern (.getName %))
+  (doall (filter #(re-find pattern (.getName %))
                  (file-seq (io/file dirpath)))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

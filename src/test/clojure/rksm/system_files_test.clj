@@ -62,9 +62,6 @@
 (comment
   (run-tests 'rksm.system-files-test)
   
-  
-  "jar:file:/Users/robert/clojure/clojure-system-files/test-resources/dummy-2-test.jar!/rksm/system_files/test/dummy_2.clj"
-  
  (.getName(relative-path-for-ns 'rksm.system-files.test.dummy-2))
   (require 'rksm.system-files.test.dummy-2)
   (classpath-for-ns 'rksm.system-files.test.dummy-2)
