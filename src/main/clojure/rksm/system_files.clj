@@ -87,7 +87,7 @@
     (add-common-project-classpath dir)))
 
 (comment
- 
+
  (rksm.system-navigator.ns.filemapping/maybe-add-classpath-dir "/Users/robert/clojure/system-navigator")
  (classpath-dir-known? "/Users/robert/clojure/cloxp-trace")
  (map str (classpath-dirs))
@@ -301,20 +301,21 @@
 
 (defn source-reader-for-ns
   [ns-name & [file-name ext]]
-  (if-let [f (file-for-ns ns-name file-name ext)]
-    (if (jar? f)
-        (jar-reader-for-ns f ns-name ext)
-        (io/reader f))))
+  (if (jar-clojure-url-string? file-name)
+    (jar-url->reader file-name)
+    (if-let [file (some-> (or file-name (file-for-ns ns-name file-name ext)) io/file)]
+      (cond
+        (jar? file) (jar-reader-for-ns file ns-name ext)
+        file (io/reader file)
+        :default nil))))
 
 (defn source-for-ns
   [ns-name & [file-name ext]]
-  (if-let [rdr (source-reader-for-ns ns-name file-name ext)]
-    (with-open [rdr rdr] (when rdr (slurp rdr)))))
+  (some->
+    (source-reader-for-ns ns-name file-name ext)
+    slurp))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-(comment
- (map #(println (.getPath %)) (fs/walk-dirs "src" #".*\.clj$")))
 
 (defn discover-ns-in-cp-dir
   [dir & [file-match]]
@@ -345,11 +346,11 @@
 
 (defn- filter-files
   [files file-match]
-  (filter 
+  (filter
    (fn [f]
      (and
       (not (.startsWith f "META-INF"))
-      (not= f "project.clj") 
+      (not= f "project.clj")
       (re-find file-match f)))
    files))
 
@@ -363,8 +364,8 @@
                      (.isDirectory cp) (map (partial fs/path-relative-to cp)
                                             (clj-files-in-dir cp))
                      jar? (->> cp java.util.jar.JarFile. .entries iterator-seq (map #(.getName %)))
-                     :default nil)]    
-      (map (fn [rel-path] 
+                     :default nil)]
+      (map (fn [rel-path]
              {:jar? jar?
               :cp cp
               :ns (rel-path->ns-name rel-path)
