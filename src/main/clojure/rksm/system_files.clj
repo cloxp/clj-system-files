@@ -212,6 +212,7 @@
 (defn namespaces-in-dir
   [^File dir matcher]
   (->> (fs/walk-dirs dir matcher)
+    (filter #(.isFile %))
     (keep clojure.tools.namespace.file/read-file-ns-decl)
     (map second)))
 
