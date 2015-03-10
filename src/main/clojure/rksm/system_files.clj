@@ -410,8 +410,9 @@
   (let [path (ns-name->rel-path ns-name ext)
         fname (str dir java.io.File/separator path)
         f (ensure-file fname ext)]
-    (spit f (format "(ns %s)" ns-name))    
+    (spit f (format "(ns %s)" ns-name))
     (ensure-classpath-for-new-ns ns-name dir)
+    (require ns-name :reload)
     (.getAbsolutePath f)))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
