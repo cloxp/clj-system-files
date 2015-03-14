@@ -6,9 +6,10 @@
                  [org.clojure/tools.namespace "0.2.8"]
                  [org.clojure/java.classpath "0.2.2"]
                  [org.tcrawley/dynapath "0.2.3"]
-                 [com.cemerick/pomegranate "0.3.0"]]
+                 [com.cemerick/pomegranate "0.3.0"]
+                 [com.keminglabs/cljx "0.6.0"]]
   :source-paths ["src/main/clojure"]
-  :test-paths ["src/main/test"]
+  :test-paths ["src/test/clojure"]
   :scm {:url "git@github.com:cloxp/system-files.git"}
   :pom-addition [:developers [:developer
                               [:name "Robert Krahn"]
