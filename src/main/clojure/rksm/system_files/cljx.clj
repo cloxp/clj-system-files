@@ -8,11 +8,13 @@
 (defn require-ns
   [ns-name & [full-file-name]]
   (let [ext-match #".cljx$"
-        full-file-name (or (file-for-ns ns-name full-file-name ext-match))
-        relative-name (ns-name->rel-path ns-name ".cljx")
-        src (source-for-ns ns-name full-file-name ext-match)
-        x-src (cljx.core/transform src cljx.rules/clj-rules)]
-    (binding [*file* relative-name]
-      (Compiler/load
-       (StringReader. x-src) relative-name
-       (.getName (io/file relative-name))))))
+        full-file-name (or (file-for-ns ns-name full-file-name ext-match))]
+    (if-not full-file-name (throw (java.io.FileNotFoundException.
+                                   (str "Cannot locate cljx file for namespace " ns-name))))
+    (let [relative-name (ns-name->rel-path ns-name ".cljx")
+          src (source-for-ns ns-name full-file-name ext-match)
+          x-src (cljx.core/transform src cljx.rules/clj-rules)]
+      (binding [*file* relative-name]
+        (Compiler/load
+         (StringReader. x-src) relative-name
+         (.getName (io/file relative-name)))))))
