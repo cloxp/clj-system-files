@@ -216,13 +216,14 @@
     (keep clojure.tools.namespace.file/read-file-ns-decl)
     (map second)))
 
-(defn namespaces-in-jar
-  [^File jar-file matcher]
-  (let [jar (java.util.jar.JarFile. jar-file)
-        jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-    (->> jar-entries
-      (keep #(clojure.tools.namespace.find/read-ns-decl-from-jarfile-entry jar %))
-      (map second))))
+(def namespaces-in-jar
+  (memoize
+   (fn [^File jar-file matcher]
+     (let [jar (java.util.jar.JarFile. jar-file)
+           jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
+       (->> jar-entries
+         (keep #(clojure.tools.namespace.find/read-ns-decl-from-jarfile-entry jar %))
+         (map second))))))
 
 (defn find-namespaces
   [^File cp ext-matcher]
