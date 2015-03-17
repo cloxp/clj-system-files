@@ -33,12 +33,9 @@
         count-base (count base-path)
         common (count (take-while true? (map #(= %1 %2) base-path input-path)))
         prefix (repeat (- count-base common) "..")]
-
-    ; (println base-path input-path common count-base)
     (if (= count-base common)
       (to-path (drop common input-path) "/")
-      (to-path (concat prefix (drop common input-path)) "/")
-      )))
+      (to-path (concat prefix (drop common input-path)) "/"))))
 
 (defn parent?
   [maybe-parent-dir dir]
@@ -60,7 +57,7 @@
         path (.getCanonicalPath dir)]
     (if-not (.exists dir)
       (throw (Exception. (str "Directory " dir " does not exist!")))
-      (do 
+      (do
         (System/setProperty "user.dir" path)
         path))))
 
