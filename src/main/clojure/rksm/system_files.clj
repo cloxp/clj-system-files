@@ -280,7 +280,7 @@
       (if (.isDirectory cp)
         (->> (clj-files-in-dir cp ext)
           (filter #(re-find
-                    (re-pattern (str (ns-name->rel-path ns-name ext) "$"))
+                    (re-pattern (str (ns-name->rel-path ns-name (or ext ".clj(x|s)?")) "$"))
                     (.getAbsolutePath %)))
           first)
         cp))))

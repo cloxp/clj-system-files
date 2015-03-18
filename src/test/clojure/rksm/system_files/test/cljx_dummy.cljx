@@ -1,13 +1,16 @@
 (ns rksm.system-files.test.cljx-dummy)
 
+(defn x-to-string
+  [x]
+  (let [buf #+clj (StringBuilder.) #+cljs (gstring/StringBuffer.)]
+    (.append buf "x is: ")
+    (.append buf (str x))))
+
+(reify
+  #+clj clojure.lang.IFn
+  #+cljs cljs.core.IFn
+  (invoke [_ x] (inc x)))
+
 (def x 23)
 
-(defonce dummy-atom (atom []))
-
-(defn test-func
-  [y]
-  (swap! dummy-atom conj (+ x y)))
-
-(defmacro foo
-  [x & body]
-  `(foo ~x ~@body))
+(def y #+clj 24 #+cljx 25)

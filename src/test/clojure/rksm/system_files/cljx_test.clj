@@ -3,13 +3,25 @@
             [rksm.system-files.cljx :as cljx]
             [rksm.system-files.loading :as load]))
 
-(deftest load-cljx-namespace-in-clj
-  (load/require-ns 'rksm.system-files.test.cljx-dummy)
-;   (cljx/require-ns 'rksm.system-files.test.cljx-dummy)
+(defn fixture [test]
+  (test)
+  (remove-ns 'rksm.system-files.test.cljx-dummy)
+  (cljx/enable-cljx-load-support!))
+
+(use-fixtures :each fixture)
+
+(deftest cljx-can-be-required
+  (cljx/enable-cljx-load-support!)
+  (require 'rksm.system-files.test.cljx-dummy :reload)
+  (is (= '(y x-to-string x) (keys (ns-interns 'rksm.system-files.test.cljx-dummy))))
   (is (= 23 (eval 'rksm.system-files.test.cljx-dummy/x)))
   (is (= "rksm/system_files/test/cljx_dummy.cljx"
          (-> 'rksm.system-files.test.cljx-dummy/x
-           find-var meta :file))))
+           find-var meta :file)))
+  (remove-ns 'rksm.system-files.test.cljx-dummy)
+  (cljx/disable-cljx-load-support!)
+  (is (thrown-with-msg? java.io.FileNotFoundException #"Could not locate"
+                        (require 'rksm.system-files.test.cljx-dummy :reload))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
