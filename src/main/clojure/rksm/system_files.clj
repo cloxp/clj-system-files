@@ -420,20 +420,6 @@
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-(defn updated-source
-  "Takes the new source for a def and produces a new version of the ns source,
-  with the new def code embedded. meta-info is a meta-data like structure."
-  [sym {:keys [line] :as meta-info} new-src-for-def old-src-for-def file-src]
-  (let [lines (s/split-lines file-src)
-        line (dec line)
-        before-lines (take line lines)
-        after-lines (-> old-src-for-def
-                      s/split-lines count
-                      (drop (drop line lines)))]
-    (str (s/join "\n" (concat before-lines [new-src-for-def] after-lines)))))
-
-; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 (comment
   (classpath)
   (loaded-namespaces)
