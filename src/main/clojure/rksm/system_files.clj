@@ -236,10 +236,12 @@
      :default [])))
 
 (defn classpath-for-ns
-  [ns-name & [ext]]
-  (let [ext (or ext #"\.cljx?$")]
+  [name-of-ns & [ext]]
+  (let [name-of-ns (if-not (symbol? ns-name)
+                     (ns-name name-of-ns) name-of-ns)
+        ext (or ext #"\.cljx?$")]
     (let [found (for [cp (sorted-classpath)]
-                  (if (some #{ns-name} (find-namespaces cp ext)) cp))]
+                  (if (some #{name-of-ns} (find-namespaces cp ext)) cp))]
       (first (remove nil? found)))))
 
 
