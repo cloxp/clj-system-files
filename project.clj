@@ -10,6 +10,7 @@
                  [com.keminglabs/cljx "0.6.0"]]
   :source-paths ["src/main/clojure"]
   :test-paths ["src/test/clojure"]
+  :aot [rksm.system-files.cljx.File]
   :scm {:url "git@github.com:cloxp/system-files.git"}
   :pom-addition [:developers [:developer
                               [:name "Robert Krahn"]
