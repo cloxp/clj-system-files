@@ -237,8 +237,11 @@
 
 (defn classpath-for-ns
   [name-of-ns & [ext]]
-  (let [name-of-ns (if-not (symbol? ns-name)
-                     (ns-name name-of-ns) name-of-ns)
+  (let [name-of-ns (cond
+                     (symbol? name-of-ns) name-of-ns
+                     (string? name-of-ns) (symbol name-of-ns)
+                     (instance? clojure.lang.Namespace ns-name) (ns-name name-of-ns)
+                     :default ns-name)
         ext (or ext #"\.cljx?$")]
     (let [found (for [cp (sorted-classpath)]
                   (if (some #{name-of-ns} (find-namespaces cp ext)) cp))]
@@ -280,11 +283,10 @@
     (io/file file-name)
     (if-let [cp (classpath-for-ns ns-name ext)]
       (if (.isDirectory cp)
-        (->> (clj-files-in-dir cp ext)
-          (filter #(re-find
-                    (re-pattern (str (ns-name->rel-path ns-name (or ext ".clj(x|s)?")) "$"))
-                    (.getAbsolutePath %)))
-          first)
+        (let [path-pattern (re-pattern (str (ns-name->rel-path ns-name (or ext ".clj(x|s)?")) "$"))]
+          (->> (clj-files-in-dir cp ext)
+            (filter #(re-find path-pattern (.getCanonicalPath %)))
+            first))
         cp))))
 
 (defn relative-path-for-ns
