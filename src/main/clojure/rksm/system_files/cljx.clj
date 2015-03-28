@@ -3,7 +3,7 @@
             [rksm.system-files :refer [file-for-ns ns-name->rel-path source-for-ns]]
             [clojure.java.io :as io])
   (:import (clojure.lang Compiler)
-           (java.io StringReader)))
+           (java.io StringReader File)))
 
 (defn require-ns
   [ns-name & [full-file-name]]
@@ -71,3 +71,10 @@
 (defn disable-cljx-load-support!
   []
   (alter-var-root #'load (constantly clojure-load)))
+
+(defn cljx-file?
+  [file]
+  (cond
+    (string? file) (boolean (re-find #"\.cljx$" file))
+    (instance? File file) (cljx-file? (.getPath file))
+    :default false))
