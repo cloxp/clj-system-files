@@ -71,3 +71,21 @@
                    (file-for-ns 'rksm.system-navigator.ns.internals))
 
  )
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+(defn ns-name->rel-path
+  [ns-name & [ext]]
+  (-> ns-name str
+    (string/replace #"\." "/")
+    (string/replace #"-" "_")
+    (str (or ext ".clj"))))
+
+(defn rel-path->ns-name
+  [rel-path]
+  (-> rel-path
+    str
+    (string/replace #"/" ".")
+    (string/replace #"_" "-")
+    (string/replace #".clj(s|x)?$" "")
+    symbol))

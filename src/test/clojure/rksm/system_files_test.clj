@@ -2,7 +2,10 @@
   (:refer-clojure :exclude [add-classpath])
   (:require [clojure.test :refer :all]
             [rksm.system-files :refer :all]
+            [rksm.system-files.jar-util :as jar]
             [clojure.java.io :as io]))
+
+(def jar-test-file (clojure.java.io/file "test-resources/dummy-2-test.jar"))
 
 (deftest system-files
 
@@ -53,9 +56,21 @@
 
 (deftest find-jar-url
   (is (= (str "jar:file:"
-              (.getCanonicalPath (clojure.java.io/file "test-resources/dummy-2-test.jar"))
+              (.getCanonicalPath jar-test-file)
               "!/rksm/system_files/test/dummy_2.clj") 
-         (rksm.system-files/jar-url-for-ns 'rksm.system-files.test.dummy-2))))
+         (jar/jar-url-for-ns 'rksm.system-files.test.dummy-2))))
+
+(deftest read-namespace-in-jar
+  (is (= "(ns rksm.system-files.test.dummy-2\n    (:gen-class))\n\n(def y 24)\n"
+         (rksm.system-files/source-for-ns 'rksm.system-files.test.dummy-2))))
+
+(deftest read-jar-url-file
+  (is (= "(ns rksm.system-files.test.dummy-2\n    (:gen-class))\n\n(def y 24)\n"
+         (slurp
+          (rksm.system-files.jar.File.
+           (str "jar:file:"
+                (.getCanonicalPath jar-test-file)
+                "!/rksm/system_files/test/dummy_2.clj"))))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

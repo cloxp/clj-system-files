@@ -2,15 +2,25 @@
     (:refer-clojure :exclude [add-classpath])
     (:require [clojure.tools.namespace.find :as nf]
               [clojure.tools.namespace.repl :as nr]
+              [clojure.tools.namespace.file :as tn-file]
               [clojure.java.classpath :as cp]
               [clojure.java.io :as io]
               [dynapath.util :as dp]
               [cemerick.pomegranate]
-              [rksm.system-files.fs-util :as fs]
+              [rksm.system-files.fs-util :as fs-util]
+              [rksm.system-files.jar-util :as jar]
               [clojure.string :as s])
-  (:import [java.io File]))
+  (:import (rksm.system-files.jar.File)
+           (rksm.system-files.cljx.File)
+           (java.io File)))
 
-(declare ns-name->rel-path classpath add-project-dir)
+(declare file ns-name->rel-path classpath add-project-dir)
+
+(def jar-url-for-ns jar/jar-url-for-ns)
+(def jar-url->reader jar/jar-url->reader)
+(def jar-entries-matching jar/jar-entries-matching)
+(def jar? jar/jar?)
+(def namespaces-in-jar (memoize jar/namespaces-in-jar))
 
 (defn classloaders
   []
@@ -56,7 +66,7 @@
           (find-first common-cljs-dirs)
           (find-first common-cljs-test-dirs)]
       (filter boolean)
-      fs/remove-parent-paths)))
+      fs-util/remove-parent-paths)))
 
 (defn add-common-project-classpath
   [& [base-dir]]
@@ -72,7 +82,7 @@
   (let [p (.getCanonicalPath (io/file project-dir))]
     (->> (classpath)
       (filter #(.startsWith (str %) p))
-      fs/remove-parent-paths)))
+      fs-util/remove-parent-paths)))
 
 (defn- classpath-dir-known?
   [dir]
@@ -93,80 +103,6 @@
  (map str (classpath-dirs))
  )
 
-; -=-=-=-=-=-=-
-; jar related
-; -=-=-=-=-=-=-
-
-(defn jar+entry->reader
-  [jar entry]
-  (io/reader (.getInputStream jar entry)))
-
-(defn jar-clojure-url-string?
-  [jar-url]
-  (boolean (and
-            (string? jar-url)
-            (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x)?))" jar-url))))
-
-(defn jar-url->reader
-  "expects a jar-url String that identifies a jar and an entry in it, like
-  jar:file:/foo/.m2/repository/org/xxx/bar/0.1.2/bar.jar!/my/ns.cljs"
-  [^String jar-url]
-  (if-let [jar-match (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x)?))" jar-url)]
-    (let [[_ _ jar-path jar-entry-path ext] jar-match
-          jar (java.util.jar.JarFile. jar-path)
-          entry (.getEntry jar jar-entry-path)]
-      (jar+entry->reader jar entry))))
-
-(defn jar-url-for-ns
-  [ns-name & [ext]]
-  (some-> ns-name
-    (ns-name->rel-path ext)
-    ClassLoader/getSystemResource
-    .toString))
-
-(comment
- (jar-url->entry "jar:file:/Users/robert/.m2/repository/org/clojure/core.async/0.1.346.0-17112a-alpha/core.async-0.1.346.0-17112a-alpha.jar!/cljs/core/async.cljs")
- )
-
-(defn jar-entries-matching
-  [jar-file matcher]
-  (->> jar-file .entries
-    iterator-seq
-    (filter #(re-find matcher (.getName %)))))
-
-(defn jar-entry-for-ns
-  [jar-file ns-name & [ext]]
-  (let [ext (or ext ".clj(x|s)?")
-        rel-name (rksm.system-files/ns-name->rel-path ns-name ext)
-        pat (re-pattern rel-name)]
-    (first (jar-entries-matching jar-file pat))))
-
-(defn jar-reader-for-ns
-  [class-path-file ns-name & [ext]]
-  (let [jar (java.util.jar.JarFile. class-path-file)
-        jar-entry (jar-entry-for-ns jar ns-name ext)]
-    (-> jar (.getInputStream jar-entry) io/reader)))
-
-(defn classpath-from-system-cp-jar
-  [jar-file]
-  (some->> jar-file
-           .getManifest
-           .getMainAttributes
-           (filter #(= "Class-Path" (-> % key str)))
-           first .getValue
-           (#(clojure.string/split % #" "))
-           (map #(java.net.URL. %))
-           (map io/as-file)))
-
-(defn jar?
-  [f]
-  (and
-    (.exists f)
-    (not (.isDirectory f))
-    (try
-      (java.util.jar.JarFile. f)
-      (catch Exception e false))))
-
 ; -=-=-=-=-=-=-=-=-
 ; class path lokup
 ; -=-=-=-=-=-=-=-=-
@@ -176,7 +112,7 @@
   (some->> (System/getProperty "java.class.path")
     io/file
     (#(try (java.util.jar.JarFile. %) (catch Exception _)))
-    classpath-from-system-cp-jar))
+    jar/classpath-from-system-cp-jar))
 
 (defn classpath
   []
@@ -211,19 +147,10 @@
 
 (defn namespaces-in-dir
   [^File dir matcher]
-  (->> (fs/walk-dirs dir matcher)
+  (->> (fs-util/walk-dirs dir matcher)
     (filter #(.isFile %))
-    (keep clojure.tools.namespace.file/read-file-ns-decl)
+    (keep tn-file/read-file-ns-decl)
     (map second)))
-
-(def namespaces-in-jar
-  (memoize
-   (fn [^File jar-file matcher]
-     (let [jar (java.util.jar.JarFile. jar-file)
-           jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-       (->> jar-entries
-         (keep #(clojure.tools.namespace.find/read-ns-decl-from-jarfile-entry jar %))
-         (map second))))))
 
 (defn find-namespaces
   [^File cp ext-matcher]
@@ -232,7 +159,7 @@
                       ext-matcher)]
    (cond
      (.isDirectory cp) (namespaces-in-dir cp ext-matcher)
-     (jar? cp) (namespaces-in-jar cp ext-matcher)
+     (jar/jar? cp) (jar/namespaces-in-jar cp ext-matcher)
      :default [])))
 
 (defn classpath-for-ns
@@ -252,21 +179,8 @@
 ; classpath / namespace -> files
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-(defn ns-name->rel-path
-  [ns-name & [ext]]
-  (-> ns-name str
-    (clojure.string/replace #"\." "/")
-    (clojure.string/replace #"-" "_")
-    (str (or ext ".clj"))))
-
-(defn rel-path->ns-name
-  [rel-path]
-  (-> rel-path
-    str
-    (clojure.string/replace #"/" ".")
-    (clojure.string/replace #"_" "-")
-    (clojure.string/replace #".clj(s|x)?$" "")
-    symbol))
+(def ns-name->rel-path fs-util/ns-name->rel-path)
+(def rel-path->ns-name fs-util/rel-path->ns-name)
 
 (defn clj-files-in-dir
   [dir & [ext]]
@@ -280,25 +194,25 @@
   "tries to find a filename for the given namespace"
   [ns-name & [file-name ext]]
   (if file-name
-    (io/file file-name)
+    (file file-name)
     (if-let [cp (classpath-for-ns ns-name ext)]
       (if (.isDirectory cp)
         (let [path-pattern (re-pattern (str (ns-name->rel-path ns-name (or ext ".clj(x|s)?")) "$"))]
           (->> (clj-files-in-dir cp ext)
             (filter #(re-find path-pattern (.getCanonicalPath %)))
-            first))
+            first file))
         cp))))
 
 (defn relative-path-for-ns
   "relative path of ns in regards to its classpath"
   [ns & [file-name]]
   (if-let [fn (file-for-ns ns file-name)]
-    (if (jar? fn)
+    (if (jar/jar? fn)
       (some-> (java.util.jar.JarFile. fn)
-        (jar-entry-for-ns ns)
+        (jar/jar-entry-for-ns ns)
         (.getName))
       (some-> (classpath-for-ns ns)
-        (fs/path-relative-to fn)))))
+        (fs-util/path-relative-to fn)))))
 
 (defn file-name-for-ns
   [ns]
@@ -306,11 +220,11 @@
 
 (defn source-reader-for-ns
   [ns-name & [file-name ext]]
-  (if (jar-clojure-url-string? file-name)
-    (jar-url->reader file-name)
+  (if (jar/jar-clojure-url-string? file-name)
+    (jar/jar-url->reader file-name)
     (if-let [file (some-> (or file-name (file-for-ns ns-name file-name ext)) io/file)]
       (cond
-        (jar? file) (jar-reader-for-ns file ns-name ext)
+        (jar/jar? file) (jar/jar-reader-for-ns file ns-name ext)
         file (io/reader file)
         :default nil))))
 
@@ -366,7 +280,7 @@
         sep java.io.File/separator]
     (if-let [files (cond
                      (not (.exists cp)) nil
-                     (.isDirectory cp) (map (partial fs/path-relative-to cp)
+                     (.isDirectory cp) (map (partial fs-util/path-relative-to cp)
                                             (clj-files-in-dir cp))
                      jar? (->> cp java.util.jar.JarFile. .entries iterator-seq (map #(.getName %)))
                      :default nil)]
@@ -424,11 +338,46 @@
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+(defn- make-cljx-file
+  [file-name]
+  (rksm.system-files.cljx.File. file-name))
+
+(defn- make-jar-file
+  [file-name]
+  (rksm.system-files.jar.File. file-name))
+
+(defn file
+  [file]
+  (if-not file
+    nil
+    (let [is-file? (instance? File file)
+          is-cljx-file? (and is-file? (instance? rksm.system-files.cljx.File file))
+          is-jar-file? (and is-file? (instance? rksm.system-files.jar.File file))]
+      (if (or is-jar-file? is-cljx-file?)
+        file
+        (let [file-name (cond
+                          (string? file) file
+                          is-file? (.getCanonicalPath file)
+                          :default (str file))]
+          (cond
+            (jar/jar-clojure-url-string? file-name) (make-jar-file file-name)
+            (re-find #"\.jar!/" file-name) (let [[_ path in-jar-path] (re-find #"([^!]+)!/(.*)" file-name)
+                                                 abs-path (.getCanonicalPath (io/file path))]
+                                             (make-jar-file (str abs-path "!/" in-jar-path)))
+            (re-find #"\.clj$" file-name) (if is-file? file (io/file file-name))
+            (re-find #"\.cljx$" file-name) (make-cljx-file file-name)
+            :default (io/file file-name)))))))
+
 (comment
+ (slurp (file "project.clj"))
+ (.getCanonicalPath (file "test-resources/dummy-2-test.jar"))
+
+ (slurp (file "test-resources/dummy-2-test.jar!/rksm/system_files/test/dummy_2.clj"))
+ (slurp (file "test-resources/dummy-2-test.jar!/rksm/system_files/test/dummy_2.clj"))
+ 
   (classpath)
   (loaded-namespaces)
   (file-for-ns 'rksm.system-files)
   (file-for-ns 'rksm.system-files "/Users/robert/clojure/system-files/src/main/clojure/rksm/system_files.clj")
   (relative-path-for-ns 'rksm.system-files "/Users/robert/clojure/system-files/src/main/clojure/rksm/system_navigator.clj")
-  (refresh-classpath-dirs)
-  )
+  (refresh-classpath-dirs))
