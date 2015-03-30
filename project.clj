@@ -1,6 +1,7 @@
 (defproject org.rksm/system-files "0.1.3-SNAPSHOT"
   :description "Accessing clojure classpath data and system files."
-  :license "MIT"
+  :license {:name "MIT License"
+            :url "http://opensource.org/licenses/MIT"}
   :url "http://github.com/cloxp/cloxp-projects"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.namespace "0.2.8"]
