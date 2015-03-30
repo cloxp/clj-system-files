@@ -27,7 +27,7 @@
                         (require 'rksm.system-files.test.cljx-dummy :reload))))
 
 (deftest cljx-file-reading
-
+  
   (let [path (str (.getParentFile (rksm.system-files/file-for-ns 'rksm.system-files.cljx-test)) "/test/cljx_dummy.cljx")
         real-content (slurp (io/file path))
         clj-content (cljx.core/transform real-content cljx.rules/clj-rules)
@@ -36,15 +36,20 @@
         read-normal (slurp file)
         read-clj (binding [cljx-file/*output-mode* :clj] (slurp file))
         read-cljs (binding [cljx-file/*output-mode* :cljs] (slurp file))]
-
+    
     (testing "output mode binding"
       (is (= real-content read-normal))
       (is (= clj-content read-clj))
       (is (= cljs-content read-cljs)))
-
+    
     (testing "changeMode"
       (.changeMode file :clj) (is (= clj-content (slurp file)))
-      (is (= cljs-content (slurp (cljx-file/with-mode path :cljs)))))))
+      (is (= cljs-content (slurp (cljx-file/with-mode path :cljs)))))
+    
+    (testing "changeMode and binding"
+      (is (= clj-content 
+             (binding [cljx-file/*output-mode* :clj]
+               (slurp (cljx-file/with-mode path :cljs))))))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

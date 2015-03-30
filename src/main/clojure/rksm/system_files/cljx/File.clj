@@ -62,7 +62,7 @@
 
 (defn output-mode
   [& [^rksm.system-files.cljx.File file]]
-  (or (some-> file .getMode) *output-mode* :cljx))
+  (or *output-mode* (some-> file .getMode) :cljx))
 
 (extend rksm.system-files.cljx.File
   io/IOFactory
