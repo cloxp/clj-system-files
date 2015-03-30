@@ -25,11 +25,18 @@
   ([parts sep]
     (apply str (interpose sep parts))))
 
+
 (defn path-relative-to
   "Generate a string which is the path to input relative to base."
   [^File base input]
-  (let [base-path (path-seq (.getCanonicalPath (io/file base)))
-        input-path (path-seq (.getCanonicalPath (io/file input)))
+  (let [base-path (-> base
+                    io/file .getCanonicalPath
+                    (string/replace #"^(jar:)?(file:)?" "")
+                    path-seq)
+        input-path (-> input
+                     io/file .getCanonicalPath
+                     (string/replace #"^(jar:)?(file:)?" "")
+                     path-seq)
         count-base (count base-path)
         common (count (take-while true? (map #(= %1 %2) base-path input-path)))
         prefix (repeat (- count-base common) "..")]

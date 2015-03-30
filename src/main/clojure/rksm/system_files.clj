@@ -194,25 +194,30 @@
   "tries to find a filename for the given namespace"
   [ns-name & [file-name ext]]
   (if file-name
-    (file file-name)
+    (let [f (file file-name)]
+      (if (jar/jar? f)
+        (file (jar/jar-url-in-jar ns-name f ext))
+        f))
     (if-let [cp (classpath-for-ns ns-name ext)]
-      (if (.isDirectory cp)
+      (cond
+        (.isDirectory cp)
         (let [path-pattern (re-pattern (str (ns-name->rel-path ns-name (or ext ".clj(x|s)?")) "$"))]
           (->> (clj-files-in-dir cp ext)
             (filter #(re-find path-pattern (.getCanonicalPath %)))
             first file))
-        cp))))
+        (jar/jar? cp) (file-for-ns ns-name cp ext)
+        :default cp))))
 
 (defn relative-path-for-ns
   "relative path of ns in regards to its classpath"
   [ns & [file-name]]
   (if-let [fn (file-for-ns ns file-name)]
-    (if (jar/jar? fn)
-      (some-> (java.util.jar.JarFile. fn)
-        (jar/jar-entry-for-ns ns)
-        (.getName))
-      (some-> (classpath-for-ns ns)
-        (fs-util/path-relative-to fn)))))
+    (cond
+      (jar/jar? fn) (some-> (java.util.jar.JarFile. fn)
+                      (jar/jar-entry-for-ns ns) .getName)
+      (instance? rksm.system-files.jar.File fn) (-> fn .getJarEntry .getName)
+      :default (some-> (classpath-for-ns ns)
+                 (fs-util/path-relative-to fn)))))
 
 (defn file-name-for-ns
   [ns]
@@ -220,13 +225,7 @@
 
 (defn source-reader-for-ns
   [ns-name & [file-name ext]]
-  (if (jar/jar-clojure-url-string? file-name)
-    (jar/jar-url->reader file-name)
-    (if-let [file (some-> (or file-name (file-for-ns ns-name file-name ext)) io/file)]
-      (cond
-        (jar/jar? file) (jar/jar-reader-for-ns file ns-name ext)
-        file (io/reader file)
-        :default nil))))
+  (some-> (file-for-ns ns-name file-name ext) file io/reader))
 
 (defn source-for-ns
   [ns-name & [file-name ext]]
@@ -374,7 +373,7 @@
 
  (slurp (file "test-resources/dummy-2-test.jar!/rksm/system_files/test/dummy_2.clj"))
  (slurp (file "test-resources/dummy-2-test.jar!/rksm/system_files/test/dummy_2.clj"))
- 
+
   (classpath)
   (loaded-namespaces)
   (file-for-ns 'rksm.system-files)

@@ -43,7 +43,7 @@
 
 (defn jar-entry-for-ns
   [jar-file ns-name & [ext]]
-  (let [ext (or ext ".clj(x|s)?")
+  (let [ext (or ext ".clj(x|s)?$")
         rel-name (fs-util/ns-name->rel-path ns-name ext)
         pat (re-pattern rel-name)]
     (first (jar-entries-matching jar-file pat))))
