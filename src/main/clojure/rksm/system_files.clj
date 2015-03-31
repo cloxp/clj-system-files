@@ -147,10 +147,13 @@
 
 (defn namespaces-in-dir
   [^File dir matcher]
-  (->> (fs-util/walk-dirs dir matcher)
-    (filter #(.isFile %))
-    (keep tn-file/read-file-ns-decl)
-    (map second)))
+  (binding [cljx-file/*output-mode* :clj]
+    (doall
+      (->> (fs-util/walk-dirs dir matcher)
+        (filter #(.isFile %))
+        (map file)
+        (keep tn-file/read-file-ns-decl)
+        (map second)))))
 
 (defn find-namespaces
   [^File cp ext-matcher]
