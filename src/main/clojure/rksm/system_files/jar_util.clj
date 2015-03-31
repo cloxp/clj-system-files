@@ -50,7 +50,7 @@
 
 (defn jar-url-in-jar
   [ns-name ^java.io.File jar-file & [ext-match]]
-  (if-let [entry (jar-entry-for-ns (java.util.jar.JarFile. jar-file) ns-name)]
+  (if-let [entry (jar-entry-for-ns (java.util.jar.JarFile. jar-file) ns-name ext-match)]
     (str "jar:file:" (.getCanonicalPath jar-file) "!/" entry)))
 
 (comment

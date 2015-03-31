@@ -9,10 +9,11 @@
               [cemerick.pomegranate]
               [rksm.system-files.fs-util :as fs-util]
               [rksm.system-files.jar-util :as jar]
-              [clojure.string :as s])
-  (:import (rksm.system-files.jar.File)
-           (rksm.system-files.cljx.File)
-           (java.io File)))
+              [clojure.string :as s]
+              [rksm.system-files.cljx.File :as cljx-file])
+  (:import (java.io File)
+           (rksm.system-files.jar.File)
+           (rksm.system-files.cljx.File)))
 
 (declare file ns-name->rel-path classpath add-project-dir)
 
