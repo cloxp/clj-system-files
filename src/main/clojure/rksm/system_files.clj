@@ -332,7 +332,8 @@
         f (ensure-file fname ext)]
     (spit f (format "(ns %s)" ns-name))
     (ensure-classpath-for-new-ns ns-name dir)
-    (require ns-name :reload)
+    (if (or (= ext ".clj") (= ext ".cljx"))
+      (require ns-name :reload))
     (.getAbsolutePath f)))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
