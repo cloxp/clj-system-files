@@ -171,8 +171,8 @@
   (let [name-of-ns (cond
                      (symbol? name-of-ns) name-of-ns
                      (string? name-of-ns) (symbol name-of-ns)
-                     (instance? clojure.lang.Namespace ns-name) (ns-name name-of-ns)
-                     :default ns-name)
+                     (instance? clojure.lang.Namespace name-of-ns) (ns-name name-of-ns)
+                     :default name-of-ns)
         ext (or ext #"\.cljx?$")]
     (let [found (for [cp (sorted-classpath)]
                   (if (some #{name-of-ns} (find-namespaces cp ext)) cp))]
