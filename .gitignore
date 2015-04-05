@@ -4,3 +4,4 @@
 /.lein-repl-history
 /.nrepl-port
 /cloxp-cljs-build/
+/pom.xml.asc
