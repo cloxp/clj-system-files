@@ -1,6 +1,6 @@
 (ns rksm.system-files.cljx
   (:require (cljx core rules)
-            [rksm.system-files :refer [file-for-ns ns-name->rel-path source-for-ns]]
+            [rksm.system-files :refer [file-for-ns ns-name->rel-path source-for-ns file]]
             [clojure.java.io :as io])
   (:import (clojure.lang Compiler)
            (java.io StringReader File)))
@@ -78,3 +78,27 @@
     (string? file) (boolean (re-find #"\.cljx$" file))
     (instance? File file) (cljx-file? (.getPath file))
     :default false))
+
+; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+(defn- dir-has-file?
+  [dir fname]
+  (.exists (io/file (str dir "/" fname))))
+
+(defn- find-project-dir
+  [dir]
+  (if-not dir
+    nil
+    (if (or (dir-has-file? dir "project.clj") (dir-has-file? dir "pom.xml"))
+      dir
+      (find-project-dir (.getParentFile dir)))))
+
+(defn ns-compile-cljx->cljs
+  [ns-name f & [project-dir]]
+  (if (cljx-file? f)
+    (let [f (file f)]
+      (if-let [project-dir (or project-dir (find-project-dir (.getParentFile f)))]
+        (let [out-file (io/file (str project-dir "/target/classes/"
+                                     (ns-name->rel-path ns-name ".cljs")))]
+          (-> out-file .getParentFile .mkdirs)
+          (spit out-file (.getCljs f)))))))

@@ -1,4 +1,4 @@
-(defproject org.rksm/system-files "0.1.3"
+(defproject org.rksm/system-files "0.1.4-SNAPSHOT"
   :description "Accessing clojure classpath data and system files."
   :license {:name "MIT License"
             :url "http://opensource.org/licenses/MIT"}
