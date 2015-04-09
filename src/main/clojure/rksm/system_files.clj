@@ -364,7 +364,8 @@
                           is-file? (.getCanonicalPath file)
                           :default (str file))]
           (cond
-            (jar/jar-clojure-url-string? file-name) (make-jar-file file-name)
+            (jar/jar-url-string? file-name) (make-jar-file file-name)
+            (re-find #"^file:" file-name) (recur (s/replace file-name #"^file:" ""))
             (re-find #"\.jar!/" file-name) (let [[_ path in-jar-path] (re-find #"([^!]+)!/(.*)" file-name)
                                                  abs-path (.getCanonicalPath (io/file path))]
                                              (make-jar-file (str abs-path "!/" in-jar-path)))

@@ -12,11 +12,11 @@
   [jar entry]
   (io/reader (.getInputStream jar entry)))
 
-(defn jar-clojure-url-string?
+(defn jar-url-string?
   [jar-url]
   (boolean (and
             (string? jar-url)
-            (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x)?))" jar-url))))
+            (re-find #"^(jar:)?file:([^!]+)!\/?.*" jar-url))))
 
 (defn jar-url->reader
   "expects a jar-url String that identifies a jar and an entry in it, like
