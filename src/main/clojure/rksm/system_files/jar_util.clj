@@ -57,11 +57,18 @@
  (jar-url->entry "jar:file:/Users/robert/.m2/repository/org/clojure/core.async/0.1.346.0-17112a-alpha/core.async-0.1.346.0-17112a-alpha.jar!/cljs/core/async.cljs")
  )
 
-(defn jar-reader-for-ns
-  [class-path-file ns-name & [ext]]
-  (let [jar (java.util.jar.JarFile. class-path-file)
-        jar-entry (jar-entry-for-ns jar ns-name ext)]
-    (-> jar (.getInputStream jar-entry) io/reader)))
+(def ^{:doc "returns seq if {:file STRING, :ns SYMBOL, :decl FORM}"}
+  namespaces-in-jar
+  (memoize
+   (fn
+     [^File jar-file matcher]
+     (let [jar (java.util.jar.JarFile. jar-file)
+           jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
+       (let [jar (java.util.jar.JarFile. jar-file)
+             jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
+         (->> jar-entries
+           (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
+           (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl})))))))))
 
 (defn classpath-from-system-cp-jar
   [jar-file]
@@ -89,6 +96,8 @@
   [^File jar-file matcher]
   (let [jar (java.util.jar.JarFile. jar-file)
         jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-    (->> jar-entries
-      (keep #(tn-find/read-ns-decl-from-jarfile-entry jar %))
-      (map second))))
+    (let [jar (java.util.jar.JarFile. jar-file)
+          jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
+      (->> jar-entries
+        (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
+        (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl})))))))
