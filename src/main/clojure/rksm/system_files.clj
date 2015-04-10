@@ -21,15 +21,14 @@
 (def jar-url->reader jar/jar-url->reader)
 (def jar-entries-matching jar/jar-entries-matching)
 (def jar? jar/jar?)
-(def namespaces-in-jar (memoize jar/namespaces-in-jar))
 
 (defn classloaders
   []
   (->> (Thread/currentThread)
-       .getContextClassLoader
-       (iterate #(.getParent %))
-       (take-while boolean)
-       (filter dp/addable-classpath?)))
+    .getContextClassLoader
+    (iterate #(.getParent %))
+    (take-while boolean)
+    (filter dp/addable-classpath?)))
 
 (defn add-classpath
   [cp]
@@ -163,7 +162,7 @@
                       ext-matcher)]
    (cond
      (.isDirectory cp) (namespaces-in-dir cp ext-matcher)
-     (jar/jar? cp) (jar/namespaces-in-jar cp ext-matcher)
+     (jar/jar? cp) (map :ns (jar/namespaces-in-jar cp ext-matcher))
      :default [])))
 
 (defn classpath-for-ns
