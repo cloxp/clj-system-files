@@ -1,23 +1,9 @@
 (ns rksm.system-files.cljx
   (:require (cljx core rules)
-            [rksm.system-files :refer [file-for-ns ns-name->rel-path source-for-ns file]]
+            [rksm.system-files :refer [ns-name->rel-path file]]
             [clojure.java.io :as io])
   (:import (clojure.lang Compiler)
            (java.io StringReader File)))
-
-(defn require-ns
-  [ns-name & [full-file-name]]
-  (let [ext-match #".cljx$"
-        full-file-name (or (file-for-ns ns-name full-file-name ext-match))]
-    (if-not full-file-name (throw (java.io.FileNotFoundException.
-                                   (str "Cannot locate cljx file for namespace " ns-name))))
-    (let [relative-name (ns-name->rel-path ns-name ".cljx")
-          src (source-for-ns ns-name full-file-name ext-match)
-          x-src (cljx.core/transform src cljx.rules/clj-rules)]
-      (binding [*file* relative-name]
-        (Compiler/load
-         (StringReader. x-src) relative-name
-         (.getName (io/file relative-name)))))))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ; rk 2015-03-16:
@@ -94,11 +80,11 @@
       (find-project-dir (.getParentFile dir)))))
 
 (defn ns-compile-cljx->cljs
-  [ns-name f & [project-dir]]
+  [ns-sym f & [project-dir]]
   (if (cljx-file? f)
     (let [f (file f)]
       (if-let [project-dir (or project-dir (find-project-dir (.getParentFile f)))]
         (let [out-file (io/file (str project-dir "/target/classes/"
-                                     (ns-name->rel-path ns-name ".cljs")))]
+                                     (ns-name->rel-path ns-sym ".cljs")))]
           (-> out-file .getParentFile .mkdirs)
           (spit out-file (.getCljs f)))))))

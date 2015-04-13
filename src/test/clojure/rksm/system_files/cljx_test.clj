@@ -3,7 +3,6 @@
             (cljx core rules)
             [rksm.system-files.cljx :as cljx]
             [rksm.system-files.cljx.File :as cljx-file]
-            [rksm.system-files.loading :as load]
             [clojure.java.io :as io]))
 
 (defn fixture [test]
