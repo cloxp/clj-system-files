@@ -91,13 +91,3 @@
     (try
       (java.util.jar.JarFile. f)
       (catch Exception e false)))))
-
-(defn namespaces-in-jar
-  [^File jar-file matcher]
-  (let [jar (java.util.jar.JarFile. jar-file)
-        jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-    (let [jar (java.util.jar.JarFile. jar-file)
-          jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-      (->> jar-entries
-        (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
-        (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl})))))))
