@@ -37,9 +37,15 @@
 
 (defn jar-entries-matching
   [jar-file matcher]
-  (->> jar-file .entries
-    iterator-seq
-    (filter #(re-find matcher (.getName %)))))
+  (with-open [fstream (-> jar-file .getName clojure.java.io/input-stream)
+              jar-stream (-> fstream java.util.jar.JarInputStream.)]
+    (doall
+      (loop [entries []]
+        (let [e (.getNextEntry jar-stream)]
+          (cond
+            (nil? e) entries
+            (re-find matcher (.getName e)) (recur (conj entries e))
+            :default (recur entries)))))))
 
 (defn jar-entry-for-ns
   [jar-file ns-name & [ext]]

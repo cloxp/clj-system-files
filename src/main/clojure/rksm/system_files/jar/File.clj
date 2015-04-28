@@ -4,7 +4,8 @@ dealing with files (like cljs.analyzer) can transparently use the jar.File
 without creating temp files."}
   rksm.system-files.jar.File
   (:require [clojure.java.io :as io]
-            [rksm.system-files.jar-util :as jar])
+            [rksm.system-files.jar-util :as jar]
+            [clojure.string :as string])
   (:import (java.io File FileInputStream InvalidObjectException)
            (java.net URL)
            (java.util.jar JarFile JarEntry))
@@ -22,7 +23,7 @@ without creating temp files."}
 
 (defn -init
   ([path]
-   (let [[full-path _ _ file-path path-in-jar] (re-find #"(jar:)?(file:)?([^!]+)!/(.*)" path)]
+   (let [[full-path _ _ file-path _ path-in-jar] (re-find #"(jar:)?(file:)?([^!]+)!(/|\\)(.*)" path)]
      (if-not path-in-jar (throw (InvalidObjectException. (str "Cannot extract path-in-jar in " path))))
      (if-not file-path (throw (InvalidObjectException. (str "Cannot extract file path in " path))))
      (-init file-path path-in-jar)))
@@ -39,7 +40,11 @@ without creating temp files."}
   (first 
    (jar/jar-entries-matching
     (.getJar this)
-    (re-pattern (str "^" (-> this .paths :path-in-jar) "$")))))
+    (re-pattern (str "^"
+                     (string/replace
+                      (-> this .paths :path-in-jar)
+                      #"\\" ".")
+                     "$")))))
 
 (defn -getJarURLString
   [this]
@@ -89,3 +94,4 @@ without creating temp files."}
          :make-input-stream
          (fn [^rksm.system-files.jar.File file opts]
            (jar/jar+entry->reader (.getJar file) (.getJarEntry file)))))
+ 
