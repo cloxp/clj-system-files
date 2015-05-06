@@ -1,16 +1,16 @@
 (ns rksm.system-files
-    (:refer-clojure :exclude [add-classpath])
-    (:require [clojure.tools.namespace.find :as nf]
-              [clojure.tools.namespace.repl :as nr]
-              [clojure.tools.namespace.file :as tn-file]
-              [clojure.java.classpath :as cp]
-              [clojure.java.io :as io]
-              [dynapath.util :as dp]
-              [cemerick.pomegranate]
-              [rksm.system-files.fs-util :as fs-util]
-              [rksm.system-files.jar-util :as jar]
-              [clojure.string :as s]
-              [rksm.system-files.cljx.File :as cljx-file])
+  (:refer-clojure :exclude [add-classpath])
+  (:require [clojure.tools.namespace.find :as nf]
+            [clojure.tools.namespace.repl :as nr]
+            [clojure.tools.namespace.file :as tn-file]
+            [clojure.java.classpath :as cp]
+            [clojure.java.io :as io]
+            [dynapath.util :as dp]
+            [cemerick.pomegranate]
+            [rksm.system-files.fs-util :as fs-util]
+            [rksm.system-files.jar-util :as jar]
+            [clojure.string :as s]
+            [rksm.system-files.cljx.File :as cljx-file])
   (:import (java.io File)
            (rksm.system-files.jar.File)
            (rksm.system-files.cljx.File)))
@@ -252,9 +252,14 @@
 
 (defn add-project-dir
   [dir & [{:keys [source-dirs project-file-match] :or {source-dirs []}}]]
-  (doseq [new-cp (concat (find-source-test-compile-dirs dir) source-dirs)]
-    (cemerick.pomegranate/add-classpath new-cp))
-  (discover-ns-in-project-dir dir project-file-match))
+  (let [cps (distinct (concat
+                        (find-source-test-compile-dirs dir)
+                        (map file source-dirs)))]
+    (doseq [cp cps] (cemerick.pomegranate/add-classpath cp))
+    (->> cps
+      (mapcat #(discover-ns-in-cp-dir % project-file-match))
+      (concat (discover-ns-in-project-dir dir project-file-match))
+      distinct doall)))
 
 (defn refresh-classpath-dirs
   []
