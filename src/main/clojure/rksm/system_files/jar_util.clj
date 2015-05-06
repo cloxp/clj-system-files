@@ -63,18 +63,20 @@
  (jar-url->entry "jar:file:/Users/robert/.m2/repository/org/clojure/core.async/0.1.346.0-17112a-alpha/core.async-0.1.346.0-17112a-alpha.jar!/cljs/core/async.cljs")
  )
 
-(def ^{:doc "returns seq if {:file STRING, :ns SYMBOL, :decl FORM}"}
-  namespaces-in-jar
-  (memoize
-   (fn
-     [^File jar-file matcher]
-     (let [jar (java.util.jar.JarFile. jar-file)
-           jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-       (let [jar (java.util.jar.JarFile. jar-file)
-             jar-entries (map #(.getName %) (jar-entries-matching jar matcher))]
-         (->> jar-entries
-           (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
-           (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl})))))))))
+(def jar-namespace-cache (atom {}))
+
+(defn namespaces-in-jar
+  "returns seq is {:file STRING, :ns SYMBOL, :decl FORM}"
+  [^File jar-file matcher]
+  (if-not (contains? @jar-namespace-cache (str jar-file))
+    (let [jar (java.util.jar.JarFile. jar-file)
+          jar-entries (map #(.getName %) (jar-entries-matching jar #".clj.?$"))
+          parsed (->> jar-entries
+                   (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
+                   (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl}))))]
+      (swap! jar-namespace-cache assoc (str jar-file) parsed)))
+  (let [entries (get @jar-namespace-cache (str jar-file))]
+    (filter #(re-find matcher (-> % :file str)) entries)))
 
 (defn classpath-from-system-cp-jar
   [jar-file]
