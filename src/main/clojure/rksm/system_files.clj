@@ -139,12 +139,6 @@
   (loaded-namespaces :matching #"rksm")
   )
 
-; (defn classpath-for-ns
-;   [ns-name]
-;   (let [found (for [cp (sorted-classpath)]
-;                 (if (some #{ns-name} (nf/find-namespaces [cp])) cp))]
-;     (first (remove nil? found))))
-
 (defn namespaces-in-dir
   [^File dir matcher]
   (binding [cljx-file/*output-mode* :clj]
@@ -165,17 +159,23 @@
      (jar/jar? cp) (map :ns (jar/namespaces-in-jar cp ext-matcher))
      :default [])))
 
-(defn classpath-for-ns
+(defn all-classpath-for-ns
   [name-of-ns & [ext]]
   (let [name-of-ns (cond
                      (symbol? name-of-ns) name-of-ns
                      (string? name-of-ns) (symbol name-of-ns)
                      (instance? clojure.lang.Namespace name-of-ns) (ns-name name-of-ns)
                      :default name-of-ns)
-        ext (or ext #"\.cljx?$")]
-    (let [found (for [cp (sorted-classpath)]
-                  (if (some #{name-of-ns} (find-namespaces cp ext)) cp))]
-      (first (remove nil? found)))))
+        ext (or ext #"\.cljx?$")
+        cps (for [cp (sorted-classpath)
+                  :let [nss (find-namespaces cp ext)]
+                  :when (some #{name-of-ns} nss)]
+              cp)]
+    cps))
+
+(defn classpath-for-ns
+  [name-of-ns & [ext]]
+  (first (all-classpath-for-ns name-of-ns ext)))
 
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -193,23 +193,32 @@
       (filter #(and (not (.isDirectory %))
                     (re-find ext (.getName %)))))))
 
+(defn- ns-file-in-cp
+  [ns-name cp ext]
+  (cond
+    (.isDirectory cp)
+    (let [path (ns-name->rel-path ns-name (or ext ".clj(x|s)?"))
+          path-pattern (re-pattern (str path "$"))]
+      (->> (clj-files-in-dir cp ext)
+        (filter #(re-find path-pattern (.getCanonicalPath %)))
+        first file))
+    (jar/jar? cp) (file-for-ns ns-name cp ext)
+    :default cp))
+
+(defn files-for-ns
+  "tries to find all filenames on classpath for the given namespace, lazy"
+  [ns-name & [file-name ext]]
+  (if-let [f (some-> file-name file)]
+    [(if (jar/jar? f)
+       (file (jar/jar-url-in-jar ns-name f ext))
+       f)]
+    (map #(ns-file-in-cp ns-name % ext)
+         (all-classpath-for-ns ns-name ext))))
+
 (defn file-for-ns
   "tries to find a filename for the given namespace"
   [ns-name & [file-name ext]]
-  (if file-name
-    (let [f (file file-name)]
-      (if (jar/jar? f)
-        (file (jar/jar-url-in-jar ns-name f ext))
-        f))
-    (if-let [cp (classpath-for-ns ns-name ext)]
-      (cond
-        (.isDirectory cp)
-        (let [path-pattern (re-pattern (str (ns-name->rel-path ns-name (or ext ".clj(x|s)?")) "$"))]
-          (->> (clj-files-in-dir cp ext)
-            (filter #(re-find path-pattern (.getCanonicalPath %)))
-            first file))
-        (jar/jar? cp) (file-for-ns ns-name cp ext)
-        :default cp))))
+  (first (files-for-ns ns-name file-name ext)))
 
 (defn relative-path-for-ns
   "relative path of ns in regards to its classpath"
@@ -297,13 +306,6 @@
               :ns (rel-path->ns-name rel-path)
               :file (if jar? (str "jar:file:" cp "!" sep rel-path) (str cp sep rel-path))})
            (filter-files files file-match)))))
-
-; (defn find-namespaces-on-cp
-;   [& [file-match]]
-;   (->> (sorted-classpath)
-;     (mapcat #(find-namespace-data % file-match))
-;     (map :ns)
-;     distinct sort))
 
 (defn find-namespaces-on-cp
   [& [file-match]]
