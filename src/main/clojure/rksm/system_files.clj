@@ -15,7 +15,7 @@
            (rksm.system-files.jar.File)
            (rksm.system-files.cljx.File)))
 
-(declare file ns-name->rel-path classpath add-project-dir)
+(declare file ns-name->rel-path classpath add-project-dir file-for-ns)
 
 (def jar-url-for-ns jar/jar-url-for-ns)
 (def jar-url->reader jar/jar-url->reader)
