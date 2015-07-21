@@ -3,6 +3,7 @@
   (:require [clojure.tools.namespace.find :as nf]
             [clojure.tools.namespace.repl :as nr]
             [clojure.tools.namespace.file :as tn-file]
+            [clojure.tools.namespace.parse :as tnp] ; for cljc fix
             [clojure.java.classpath :as cp]
             [clojure.java.io :as io]
             [dynapath.util :as dp]
@@ -139,15 +140,31 @@
   (loaded-namespaces :matching #"rksm")
   )
 
+(require '[clojure.tools.namespace.parse :as tnp])
+
+(defn- read-ns-decl-for-cljc
+  "for cljc compat, inlined here until tools.namespace includes fix"
+  [rdr]
+  {:pre [(instance? java.io.PushbackReader rdr)]}
+  (try
+    (loop []
+      (let [form (doto (read {:read-cond :allow} rdr) str)]  ; str forces errors, see TNS-1
+        (if (tnp/ns-decl? form)
+          form
+          (recur))))
+    (catch Exception e (do e nil))))
+
 (defn namespaces-in-dir
   [^File dir matcher]
   (binding [cljx-file/*output-mode* :clj]
-    (doall
-      (->> (fs-util/walk-dirs dir matcher)
-        (filter #(.isFile %))
-        (map file)
-        (keep tn-file/read-file-ns-decl)
-        (map second)))))
+    ; temp cljc fix:
+    (with-redefs [clojure.tools.namespace.parse/read-ns-decl #'read-ns-decl-for-cljc]
+      (doall
+        (->> (fs-util/walk-dirs dir matcher)
+          (filter #(.isFile %))
+          (map file)
+          (keep tn-file/read-file-ns-decl)
+          (map second))))))
 
 (defn find-namespaces
   [^File cp ext-matcher]
@@ -166,7 +183,7 @@
                      (string? name-of-ns) (symbol name-of-ns)
                      (instance? clojure.lang.Namespace name-of-ns) (ns-name name-of-ns)
                      :default name-of-ns)
-        ext (or ext #"\.cljx?$")
+        ext (or ext #"\.clj(x|c|s)?$")
         cps (for [cp (sorted-classpath)
                   :let [nss (find-namespaces cp ext)]
                   :when (some #{name-of-ns} nss)]
@@ -187,7 +204,7 @@
 
 (defn clj-files-in-dir
   [dir & [ext]]
-  (let [ext (or ext #"\.cljx?")]
+  (let [ext (or ext #"\.clj(x|c)?")]
     (->> dir
       (tree-seq #(.isDirectory %) #(.listFiles %))
       (filter #(and (not (.isDirectory %))
@@ -197,7 +214,7 @@
   [ns-name cp ext]
   (cond
     (.isDirectory cp)
-    (let [path (ns-name->rel-path ns-name (or ext ".clj(x|s)?"))
+    (let [path (ns-name->rel-path ns-name (or ext ".clj(x|s|c)?"))
           path-pattern (re-pattern (str path "$"))]
       (->> (clj-files-in-dir cp ext)
         (filter #(re-find path-pattern (.getCanonicalPath %)))
@@ -249,7 +266,7 @@
 
 (defn discover-ns-in-cp-dir
   [dir & [file-match]]
-  (let [file-match (or file-match #".*\.cljx?$")
+  (let [file-match (or file-match #".*\.clj(x|c)?$")
         dir (io/file dir)]
     (find-namespaces dir file-match)))
 
@@ -291,7 +308,7 @@
 
 (defn- find-namespace-data
   [cp & [file-match]]
-  (let [file-match (or file-match #"\.cljx?$")
+  (let [file-match (or file-match #"\.clj(x|c)?$")
         jar? (boolean (re-find #"\.jar$" (.getName cp)))
         sep java.io.File/separator]
     (if-let [files (cond
@@ -309,7 +326,7 @@
 
 (defn find-namespaces-on-cp
   [& [file-match]]
-  (let [file-match (or file-match #"\.cljx?$")]
+  (let [file-match (or file-match #"\.clj(x|c)?$")]
     (->> (sorted-classpath)
       (mapcat #(find-namespaces % file-match))
       distinct sort)))
@@ -342,7 +359,9 @@
         f (ensure-file fname ext)]
     (spit f (format "(ns %s)" ns-name))
     (ensure-classpath-for-new-ns ns-name dir)
-    (if (or (= ext ".clj") (= ext ".cljx"))
+    (if (or (= ext ".clj")
+            (= ext ".cljx")
+            (= ext ".cljc"))
       (require ns-name :reload))
     (.getAbsolutePath f)))
 
@@ -375,7 +394,7 @@
             (re-find #"\.jar!/" file-name) (let [[_ path in-jar-path] (re-find #"([^!]+)!/(.*)" file-name)
                                                  abs-path (.getCanonicalPath (io/file path))]
                                              (make-jar-file (str abs-path "!/" in-jar-path)))
-            (re-find #"\.clj$" file-name) (if is-file? file (io/file file-name))
+            (re-find #"\.cljc?$" file-name) (if is-file? file (io/file file-name))
             (re-find #"\.cljx$" file-name) (make-cljx-file file-name)
             :default (io/file file-name)))))))
 

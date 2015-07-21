@@ -94,5 +94,5 @@
     str
     (string/replace #"/" ".")
     (string/replace #"_" "-")
-    (string/replace #".clj(s|x)?$" "")
+    (string/replace #".clj(s|x|c)?$" "")
     symbol))

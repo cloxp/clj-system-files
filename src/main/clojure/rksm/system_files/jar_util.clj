@@ -22,7 +22,7 @@
   "expects a jar-url String that identifies a jar and an entry in it, like
   jar:file:/foo/.m2/repository/org/xxx/bar/0.1.2/bar.jar!/my/ns.cljs"
   [^String jar-url]
-  (if-let [jar-match (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x)?))" jar-url)]
+  (if-let [jar-match (re-find #"^(jar:)?file:([^!]+)!\/?(.*(\.clj(s|x|c)?))" jar-url)]
     (let [[_ _ jar-path jar-entry-path ext] jar-match
           jar (java.util.jar.JarFile. jar-path)
           entry (.getEntry jar jar-entry-path)]
@@ -49,7 +49,7 @@
 
 (defn jar-entry-for-ns
   [jar-file ns-name & [ext]]
-  (let [ext (or ext ".clj(x|s)?$")
+  (let [ext (or ext ".clj(x|s|c)?$")
         rel-name (fs-util/ns-name->rel-path ns-name ext)
         pat (re-pattern rel-name)]
     (first (jar-entries-matching jar-file pat))))
