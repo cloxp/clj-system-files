@@ -10,11 +10,9 @@
             [cemerick.pomegranate]
             [rksm.system-files.fs-util :as fs-util]
             [rksm.system-files.jar-util :as jar]
-            [clojure.string :as s]
-            [rksm.system-files.cljx.File :as cljx-file])
+            [clojure.string :as s])
   (:import (java.io File)
-           (rksm.system-files.jar.File)
-           (rksm.system-files.cljx.File)))
+           (rksm.system-files.jar.File)))
 
 (declare file ns-name->rel-path classpath add-project-dir file-for-ns)
 
@@ -156,15 +154,14 @@
 
 (defn namespaces-in-dir
   [^File dir matcher]
-  (binding [cljx-file/*output-mode* :clj]
-    ; temp cljc fix:
-    (with-redefs [clojure.tools.namespace.parse/read-ns-decl #'read-ns-decl-for-cljc]
-      (doall
-        (->> (fs-util/walk-dirs dir matcher)
-          (filter #(.isFile %))
-          (map file)
-          (keep tn-file/read-file-ns-decl)
-          (map second))))))
+  ; temp cljc fix:
+  (with-redefs [clojure.tools.namespace.parse/read-ns-decl #'read-ns-decl-for-cljc]
+    (doall
+      (->> (fs-util/walk-dirs dir matcher)
+        (filter #(.isFile %))
+        (map file)
+        (keep tn-file/read-file-ns-decl)
+        (map second)))))
 
 (defn find-namespaces
   [^File cp ext-matcher]
@@ -360,16 +357,11 @@
     (spit f (format "(ns %s)" ns-name))
     (ensure-classpath-for-new-ns ns-name dir)
     (if (or (= ext ".clj")
-            (= ext ".cljx")
             (= ext ".cljc"))
       (require ns-name :reload))
     (.getAbsolutePath f)))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-(defn- make-cljx-file
-  [file-name]
-  (rksm.system-files.cljx.File. file-name))
 
 (defn- make-jar-file
   [file-name]
@@ -380,9 +372,8 @@
   (if-not file
     nil
     (let [is-file? (instance? File file)
-          is-cljx-file? (and is-file? (instance? rksm.system-files.cljx.File file))
           is-jar-file? (and is-file? (instance? rksm.system-files.jar.File file))]
-      (if (or is-jar-file? is-cljx-file?)
+      (if (or is-jar-file?)
         file
         (let [file-name (cond
                           (string? file) file
@@ -395,7 +386,6 @@
                                                  abs-path (.getCanonicalPath (io/file path))]
                                              (make-jar-file (str abs-path "!/" in-jar-path)))
             (re-find #"\.cljc?$" file-name) (if is-file? file (io/file file-name))
-            (re-find #"\.cljx$" file-name) (make-cljx-file file-name)
             :default (io/file file-name)))))))
 
 (comment
