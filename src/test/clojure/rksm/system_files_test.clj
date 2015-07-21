@@ -75,9 +75,12 @@
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 (comment
-  (run-tests 'rksm.system-files-test)
+  (let [s (java.io.StringWriter.)]
+    (binding [*test-out* s]
+      (run-tests *ns*)
+      (print (str s))))
   
- (.getName(relative-path-for-ns 'rksm.system-files.test.dummy-2))
+  (.getName(relative-path-for-ns 'rksm.system-files.test.dummy-2))
   (require 'rksm.system-files.test.dummy-2)
   (classpath-for-ns 'rksm.system-files.test.dummy-2)
   (source-for-ns 'clojure.core)

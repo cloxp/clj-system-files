@@ -12,7 +12,7 @@
 
 (use-fixtures :each fixture)
 
-(deftest cljx-can-be-required
+#_(deftest cljx-can-be-required
   (cljx/enable-cljx-load-support!)
   (require 'rksm.system-files.test.cljx-dummy :reload)
   (is (= '(y x-to-string x) (keys (ns-interns 'rksm.system-files.test.cljx-dummy))))
@@ -25,7 +25,7 @@
   (is (thrown-with-msg? java.io.FileNotFoundException #"Could not locate"
                         (require 'rksm.system-files.test.cljx-dummy :reload))))
 
-(deftest cljx-file-reading
+#_(deftest cljx-file-reading
   
   (let [path (str (.getParentFile (rksm.system-files/file-for-ns 'rksm.system-files.cljx-test)) "/test/cljx_dummy.cljx")
         real-content (slurp (io/file path))
