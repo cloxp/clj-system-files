@@ -7,7 +7,7 @@
             [clojure.java.classpath :as cp]
             [clojure.java.io :as io]
             [dynapath.util :as dp]
-            [cemerick.pomegranate]
+            [cemerick.pomegranate :as pom]
             [rksm.system-files.fs-util :as fs-util]
             [rksm.system-files.jar-util :as jar]
             [clojure.string :as s])
@@ -31,11 +31,9 @@
 
 (defn add-classpath
   [cp]
-  (if-not (some (partial = (io/file cp)) (classpath))
-    (dp/add-classpath-url
-     (last (classloaders))
-     (-> cp io/file .toURI .toURL))))
-
+  (let [url (->> cp io/file io/as-url)]
+    (if-not (some #{(str url)} (pom/get-classpath))
+      (dp/add-classpath-url (last (classloaders)) url))))
 
 (def common-src-dirs ["src/main/clojure", "src/main/clj", "src/main", "src/clojure", "src/clj", "src"])
 (def common-cljs-dirs ["src/main/cljs", "src/cljs", "src"])
@@ -342,20 +340,13 @@
           f (java.io.File/createTempFile name (or ext ".clj"))]
       f)))
 
-(defn ensure-classpath-for-new-ns
-  [ns-name dir]
-  (if-not (->> (classpath)
-            (map #(.getCanonicalPath %))
-            (some #{dir}))
-    (add-classpath dir)))
-
 (defn create-namespace-file
   [ns-name dir ext]
   (let [path (ns-name->rel-path ns-name ext)
         fname (str dir java.io.File/separator path)
         f (ensure-file fname ext)]
     (spit f (format "(ns %s)" ns-name))
-    (ensure-classpath-for-new-ns ns-name dir)
+    (add-classpath dir)
     (if (or (= ext ".clj")
             (= ext ".cljc"))
       (require ns-name :reload))
