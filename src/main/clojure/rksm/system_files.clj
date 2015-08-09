@@ -199,7 +199,7 @@
 
 (defn clj-files-in-dir
   [dir & [ext]]
-  (let [ext (or ext #"\.clj(x|c)?")]
+  (let [ext (or ext #"\.clj(x|c)?$")]
     (->> dir
       (tree-seq #(.isDirectory %) #(.listFiles %))
       (filter #(and (not (.isDirectory %))

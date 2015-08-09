@@ -68,7 +68,7 @@
 (defn namespaces-in-jar
   "returns seq is {:file STRING, :ns SYMBOL, :decl FORM}"
   [^File jar-file matcher]
-  (if-not (contains? @jar-namespace-cache (str jar-file))
+  (if-not (contains? @jar-namespace-cache (str jar-file "|" (pr-str matcher)))
     (let [jar (java.util.jar.JarFile. jar-file)
           jar-entries (map #(.getName %) (jar-entries-matching jar #".clj.?$"))
           parsed (->> jar-entries

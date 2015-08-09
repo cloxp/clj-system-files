@@ -4,7 +4,7 @@
             :url "http://opensource.org/licenses/MIT"}
   :url "http://github.com/cloxp/cloxp-projects"
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/tools.namespace "0.2.10"]
+                 [org.clojure/tools.namespace "0.2.11"]
                  [org.clojure/java.classpath "0.2.2"]
                  [org.tcrawley/dynapath "0.2.3"]
                  [com.cemerick/pomegranate "0.3.0"]]
