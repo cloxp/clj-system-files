@@ -150,16 +150,20 @@
           (recur))))
     (catch Exception e (do e nil))))
 
-(defn namespaces-in-dir
+(defn namespaces-in-dir-with-file
   [^File dir matcher]
   ; temp cljc fix:
   (with-redefs [clojure.tools.namespace.parse/read-ns-decl #'read-ns-decl-for-cljc]
-    (doall
-      (->> (fs-util/walk-dirs dir matcher)
-        (filter #(.isFile %))
-        (map file)
-        (keep tn-file/read-file-ns-decl)
-        (map second)))))
+    (into []
+          (comp (filter #(.isFile %))
+                (map file)
+                (map #(hash-map :name (-> % tn-file/read-file-ns-decl second) :file %))
+                (filter :name))
+          (fs-util/walk-dirs dir matcher))))
+
+(defn namespaces-in-dir
+  [^File dir matcher]
+  (map :name (namespaces-in-dir-with-file dir matcher)))
 
 (defn find-namespaces
   [^File cp ext-matcher]
