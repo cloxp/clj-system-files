@@ -209,27 +209,46 @@
       (filter #(and (not (.isDirectory %))
                     (re-find ext (.getName %)))))))
 
-(defn- ns-file-in-cp
+(declare files-for-ns)
+
+(defn- ns-files-in-cp
   [ns-name cp ext]
   (cond
     (.isDirectory cp)
-    (let [path (ns-name->rel-path ns-name (or ext ".clj(x|s|c)?"))
+    (let [path (ns-name->rel-path ns-name (or ext ".clj(s|c)?"))
           path-pattern (re-pattern (str path "$"))]
       (->> (clj-files-in-dir cp ext)
         (filter #(re-find path-pattern (.getCanonicalPath %)))
-        first file))
-    (jar/jar? cp) (file-for-ns ns-name cp ext)
-    :default cp))
+        (map file)))
+    (jar/jar? cp) (files-for-ns ns-name cp ext)
+    :default []))
 
 (defn files-for-ns
   "tries to find all filenames on classpath for the given namespace, lazy"
   [ns-name & [file-name ext]]
-  (if-let [f (some-> file-name file)]
-    [(if (jar/jar? f)
-       (file (jar/jar-url-in-jar ns-name f ext))
-       f)]
-    (map #(ns-file-in-cp ns-name % ext)
-         (all-classpath-for-ns ns-name ext))))
+  (let [f (some-> file-name file)
+        file-name (cond
+                    (string? file-name) file-name
+                    (nil? file-name) ""
+                    (instance? File file-name) (.getPath f)
+                    :default (str file-name))]
+
+    (filter #(and (instance? File %) (.exists %))
+
+            ; jar
+            (if (and f (jar/jar? f))
+              [(file (jar/jar-url-in-jar ns-name f ext))]
+
+              (concat
+               ; look on classpath
+               (sequence
+                (comp
+                 (mapcat #(ns-files-in-cp ns-name % ext))
+                 (filter #(.endsWith (.getName %) file-name)))
+                (all-classpath-for-ns ns-name ext))
+
+               ; search for resource
+               (if f [(some-> file-name io/resource file)]))))))
 
 (defn file-for-ns
   "tries to find a filename for the given namespace"
@@ -257,9 +276,7 @@
 
 (defn source-for-ns
   [ns-name & [file-name ext]]
-  (some->
-    (source-reader-for-ns ns-name file-name ext)
-    slurp))
+  (some-> (source-reader-for-ns ns-name file-name ext) slurp))
 
 ; -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
