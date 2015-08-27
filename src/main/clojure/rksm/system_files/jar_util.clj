@@ -68,15 +68,16 @@
 (defn namespaces-in-jar
   "returns seq is {:file STRING, :ns SYMBOL, :decl FORM}"
   [^File jar-file matcher]
-  (if-not (contains? @jar-namespace-cache (str jar-file "|" (pr-str matcher)))
-    (let [jar (java.util.jar.JarFile. jar-file)
-          jar-entries (map #(.getName %) (jar-entries-matching jar #".clj.?$"))
-          parsed (->> jar-entries
-                   (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
-                   (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl}))))]
-      (swap! jar-namespace-cache assoc (str jar-file) parsed)))
-  (let [entries (get @jar-namespace-cache (str jar-file))]
-    (filter #(re-find matcher (-> % :file str)) entries)))
+  (let [cached-name (str jar-file)]
+    (if-not (contains? @jar-namespace-cache cached-name)
+      (let [jar (java.util.jar.JarFile. jar-file)
+            jar-entries (map #(.getName %) (jar-entries-matching jar #".clj.?$"))
+            parsed (->> jar-entries
+                     (map (juxt identity (partial tn-find/read-ns-decl-from-jarfile-entry jar)))
+                     (keep (fn [[file decl]] (if decl {:file file :ns (second decl) :decl decl}))))]
+        (swap! jar-namespace-cache assoc cached-name parsed)))
+    (let [entries (get @jar-namespace-cache cached-name)]
+      (filter #(re-find matcher (-> % :file str)) entries))))
 
 (defn classpath-from-system-cp-jar
   [jar-file]
