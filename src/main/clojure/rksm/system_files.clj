@@ -253,7 +253,8 @@
 (defn file-for-ns
   "tries to find a filename for the given namespace"
   [ns-name & [file-name ext]]
-  (first (files-for-ns ns-name file-name ext)))
+  (or (when-let [f (some-> file-name file)] (when (.exists f) f))
+      (first (files-for-ns ns-name file-name ext))))
 
 (defn relative-path-for-ns
   "relative path of ns in regards to its classpath"
