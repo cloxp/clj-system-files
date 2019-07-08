@@ -11,8 +11,7 @@
             [rksm.system-files.fs-util :as fs-util]
             [rksm.system-files.jar-util :as jar]
             [clojure.string :as s])
-  (:import (java.io File)
-           (rksm.system-files.jar.File)))
+  (:import (rksm.system-files.jar File)))
 
 (declare file ns-name->rel-path classpath add-project-dir file-for-ns)
 
@@ -151,7 +150,7 @@
     (catch Exception e (do e nil))))
 
 (defn namespaces-in-dir-with-file
-  [^File dir matcher]
+  [^java.io.File dir matcher]
   ; temp cljc fix:
   (with-redefs [clojure.tools.namespace.parse/read-ns-decl #'read-ns-decl-for-cljc]
     (into []
@@ -162,11 +161,11 @@
           (fs-util/walk-dirs dir matcher))))
 
 (defn namespaces-in-dir
-  [^File dir matcher]
+  [^java.io.File dir matcher]
   (map :name (namespaces-in-dir-with-file dir matcher)))
 
 (defn find-namespaces
-  [^File cp ext-matcher]
+  [^java.io.File cp ext-matcher]
   (let [ext-matcher (if (string? ext-matcher)
                       (re-pattern ext-matcher)
                       ext-matcher)]
@@ -230,10 +229,10 @@
         file-name (cond
                     (string? file-name) file-name
                     (nil? file-name) ""
-                    (instance? File file-name) (.getPath f)
+                    (instance? java.io.File file-name) (.getPath f)
                     :default (str file-name))]
 
-    (filter #(and (instance? File %) (.exists %))
+    (filter #(and (instance? java.io.File %) (.exists %))
 
             ; jar
             (if (and f (jar/jar? f))
@@ -384,7 +383,7 @@
   [file]
   (if-not file
     nil
-    (let [is-file? (instance? File file)
+    (let [is-file? (instance? java.io.File file)
           is-jar-file? (and is-file? (instance? rksm.system-files.jar.File file))]
       (if (or is-jar-file?)
         file
