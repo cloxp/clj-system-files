@@ -17,13 +17,13 @@
 
   (testing "find loaded namespaces"
     (is (= ['rksm.system-files.test.dummy-1
-            'rksm.system-files.test.dummy-2 
+            'rksm.system-files.test.dummy-2
             'rksm.system-files.test.dummy-3]
            (loaded-namespaces :matching #"rksm.system-files.*dummy-[0-9]$"))))
 
   (testing "namespace to classpath mapping"
     (testing "for dirs"
-      
+
       (is
         (->> (classpath-for-ns 'rksm.system-files.test.dummy-1)
              str
@@ -46,7 +46,7 @@
     (testing "for jars"
       (is (= "(ns rksm.system-files.test.dummy-2\n    (:gen-class))\n\n(def y 24)\n"
               (source-for-ns 'rksm.system-files.test.dummy-2)))))
-  
+
   (testing "relative namespace paths"
     (is (= "rksm/system_files/test/dummy_1.clj"
            (relative-path-for-ns 'rksm.system-files.test.dummy-1)))
@@ -57,7 +57,7 @@
 (deftest find-jar-url
   (is (= (str "jar:file:"
               (.getCanonicalPath jar-test-file)
-              "!/rksm/system_files/test/dummy_2.clj") 
+              "!/rksm/system_files/test/dummy_2.clj")
          (jar/jar-url-for-ns 'rksm.system-files.test.dummy-2))))
 
 (deftest read-namespace-in-jar
@@ -79,7 +79,7 @@
     (binding [*test-out* s]
       (run-tests *ns*)
       (print (str s))))
-  
+
   (.getName(relative-path-for-ns 'rksm.system-files.test.dummy-2))
   (require 'rksm.system-files.test.dummy-2)
   (classpath-for-ns 'rksm.system-files.test.dummy-2)

@@ -139,15 +139,17 @@
 
 (defn- read-ns-decl-for-cljc
   "for cljc compat, inlined here until tools.namespace includes fix"
-  [rdr]
-  {:pre [(instance? java.io.PushbackReader rdr)]}
-  (try
-    (loop []
-      (let [form (doto (read {:read-cond :allow} rdr) str)]  ; str forces errors, see TNS-1
-        (if (tnp/ns-decl? form)
-          form
-          (recur))))
-    (catch Exception e (do e nil))))
+  ([rdr]
+   (read-ns-decl-for-cljc rdr nil))
+  ([rdr read-opts]
+   {:pre [(instance? java.io.PushbackReader rdr)]}
+   (try
+     (loop []
+       (let [form (doto (read {:read-cond :allow} rdr) str)] ; str forces errors, see TNS-1
+         (if (tnp/ns-decl? form)
+           form
+           (recur))))
+     (catch Exception e (do e nil)))))
 
 (defn namespaces-in-dir-with-file
   [^java.io.File dir matcher]
